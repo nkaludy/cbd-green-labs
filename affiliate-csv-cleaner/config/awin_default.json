@@ -1,0 +1,54 @@
+{
+  "_comment": "Config for our AWIN die cast feed. column_mapping keys are the CSV's source headers; values are the field names the WordPress Affiliate Product Importer expects. Multiple sources may map to the same target as fallbacks (first non-empty wins, in order) — AWIN exports carry the price in either search_price or price depending on export vintage. merchant_category is deliberately NOT mapped: it carries brand names and merchandising labels, not categories — the importer detects product-type from the TITLE instead ([DOC-192] in the importer plugin). Every step can be toggled true/false. See README.md.",
+  "network": "AWIN",
+
+  "column_mapping": {
+    "aw_deep_link": "affiliate_url",
+    "product_name": "post_title",
+    "aw_product_id": "aw_product_id",
+    "merchant_product_id": "sku",
+    "merchant_image_url": "merchant_image_url",
+    "aw_image_url": "main_image",
+    "description": "features",
+    "search_price": "price",
+    "price": "price",
+    "merchant_deep_link": "merchant_url"
+  },
+
+  "duplicate_field": "sku",
+  "description_field": "features",
+  "max_gallery_images": 6,
+
+  "steps": {
+    "remove_empty_rows": true,
+    "trim_whitespace": true,
+    "fix_encoding": true,
+    "clean_descriptions": true,
+    "remove_duplicates": true,
+    "extract_fields": true,
+    "extract_images": true,
+    "seo_enrich": true
+  },
+
+  "extraction": {
+    "brand_pattern": "\\bby\\s+([A-Z][\\w&.\\- ]*?)\\s*$",
+    "scale_pattern": "\\b1[/:](18|24|32|43|64|100|400)\\b",
+    "year_pattern": "^(19\\d{2}|20[0-2]\\d|2030)\\b"
+  },
+
+  "seo": {
+    "opening_template": "Discover the {title}, a detailed die cast replica for serious collectors.",
+    "closing_template": "Add the {title} to your collection today."
+  },
+
+  "tracking_params": [
+    "utm_*",
+    "clickref",
+    "awc",
+    "affid",
+    "ref",
+    "tag",
+    "source",
+    "campaign"
+  ]
+}

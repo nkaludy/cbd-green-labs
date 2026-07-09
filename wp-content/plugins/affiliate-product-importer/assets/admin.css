@@ -1,0 +1,140 @@
+/**
+ * [DOC-072] Affiliate Product Importer — admin screen styles.
+ *
+ * Only loaded on the importer's own screen (see [DOC-058]). The palette
+ * leans entirely on wp-admin's own colors (WordPress admin CSS custom
+ * properties are not yet reliable across color schemes, so the classic
+ * hex values used by core components are hardcoded here the same way
+ * core does).
+ */
+
+/* ------------------------------------------------------------------
+ * Tab panels — all four are rendered in the DOM; only the active one
+ * is visible. Switching is class-based from admin.js ([DOC-073]).
+ * ------------------------------------------------------------------ */
+.afpi-tab-panel {
+	display: none;
+	padding-top: 12px;
+}
+
+.afpi-tab-panel.is-active {
+	display: block;
+}
+
+.afpi-hidden {
+	display: none;
+}
+
+/* ------------------------------------------------------------------
+ * Mapping table (built by admin.js after upload).
+ * ------------------------------------------------------------------ */
+.afpi-mapping-grid {
+	border-collapse: collapse;
+	margin-top: 8px;
+}
+
+.afpi-mapping-grid th,
+.afpi-mapping-grid td {
+	padding: 6px 24px 6px 0;
+	text-align: left;
+	vertical-align: middle;
+}
+
+.afpi-mapping-grid select {
+	min-width: 240px;
+}
+
+/* Required-field marker on the Product Title row. */
+.afpi-required {
+	color: #d63638;
+}
+
+/* ------------------------------------------------------------------
+ * CSV preview table. Wide feeds get a horizontal scrollbar instead of
+ * breaking the admin layout.
+ * ------------------------------------------------------------------ */
+.afpi-preview-scroll {
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.afpi-preview-scroll table {
+	border-collapse: collapse;
+	white-space: nowrap;
+}
+
+.afpi-preview-scroll th,
+.afpi-preview-scroll td {
+	border: 1px solid #c3c4c7;
+	padding: 4px 10px;
+	max-width: 320px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.afpi-preview-scroll th {
+	background: #f0f0f1;
+}
+
+/* ------------------------------------------------------------------
+ * Progress bar. The bar's width is set inline by admin.js as the
+ * import advances; the transition makes each batch's jump read as
+ * motion instead of a stutter.
+ * ------------------------------------------------------------------ */
+.afpi-progress-track {
+	background: #dcdcde;
+	border-radius: 4px;
+	height: 20px;
+	max-width: 640px;
+	overflow: hidden;
+}
+
+.afpi-progress-bar {
+	background: #2271b1;
+	border-radius: 4px;
+	height: 100%;
+	transition: width 0.3s ease;
+	width: 0;
+}
+
+/* ------------------------------------------------------------------
+ * Results and per-row notes.
+ * ------------------------------------------------------------------ */
+#afpi-results-summary {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+#afpi-results-messages li,
+.afpi-log-messages li {
+	color: #646970;
+	margin: 2px 0;
+}
+
+.afpi-row-count {
+	color: #646970;
+	margin-left: 12px;
+}
+
+/* ------------------------------------------------------------------
+ * Profiles tab.
+ * ------------------------------------------------------------------ */
+#afpi-profile-select {
+	min-width: 240px;
+}
+
+/* Red-tinted delete, matching core's "delete" link affordance. */
+.afpi-delete-btn {
+	color: #d63638;
+}
+
+#afpi-profile-feedback .notice {
+	margin: 12px 0 0;
+}
+
+/* ------------------------------------------------------------------
+ * History tab.
+ * ------------------------------------------------------------------ */
+.afpi-history-table details summary {
+	cursor: pointer;
+}

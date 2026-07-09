@@ -1,0 +1,863 @@
+<?php
+namespace ShortPixel\Controller;
+
+if ( ! defined( 'ABSPATH' ) ) {
+ exit; // Exit if accessed directly.
+}
+
+use ShortPixel\Controller\Optimizer\OptimizeAiController;
+use ShortPixel\ShortPixelLogger\ShortPixelLogger as Log;
+use ShortPixel\Notices\NoticeController as Notices;
+use ShortPixel\Controller\Queue\Queue as Queue;
+
+use ShortPixel\Model\Converter\Converter as Converter;
+use ShortPixel\Model\Converter\ApiConverter as ApiConverter;
+
+use ShortPixel\Model\Image\MediaLibraryModel as MediaLibraryModel;
+use ShortPixel\Model\Image\ImageModel as ImageModel;
+
+use ShortPixel\Model\AccessModel as AccessModel;
+use ShortPixel\Helper\UtilHelper as UtilHelper;
+use WP_HTTP_Response;
+
+/**
+ * Handles WordPress events, hooks, and filters when no specific ShortPixel admin page is active.
+ *
+ * Acts as a delegation class connecting global WordPress hooks to the appropriate
+ * ShortPixel handler. Covers upload events, attachment lifecycle, REST API
+ * enrichment, media-library filtering, and the admin toolbar icon.
+ *
+ * @package ShortPixel\Controller
+ */
+class AdminController extends \ShortPixel\Controller
+{
+    /** @var AdminController|null Singleton instance. */
+    protected static $instance;
+
+    /** @var int[] Post IDs for which the upload hook should be suppressed. */
+		private static $preventUploadHook = array();
+
+    public static function getInstance()
+    {
+      if (is_null(self::$instance))
+          self::$instance = new AdminController();
+
+      return self::$instance;
+    }
+
+    /**
+     * Fires on add_attachment to trigger conversion check before any offload plugin acts.
+     *
+     * Retrieves the newly uploaded media item and, when a converter is available and the
+     * item is convertable, dispatches the prevent-offload action so offload plugins
+     * defer moving the file.
+     *
+     * @param int $post_id WordPress attachment post ID.
+     * @return void
+     */
+    public function addAttachmentHook($post_id)
+    {
+          $fs = \wpSPIO()->filesystem();
+
+          // If attachment doesn't come back as an valid image
+          $mediaItem = $fs->getImage($post_id, 'media');
+          if (false === $mediaItem)
+          {
+             return;
+          }
+
+          $converter = Converter::getConverter($mediaItem, true);
+
+            if (is_object($converter) && $converter->isConvertable())
+            {
+              do_action('shortpixel/converter/prevent-offload', $post_id);
+            }
+    }
+
+
+    /**
+     * Handles the wp_generate_attachment_metadata filter to enqueue newly uploaded images for optimization.
+     *
+     * Skips processing when the post ID is in the prevent-list, when the attachment is
+     * not a valid/processable image, or when PDF optimization is disabled. Runs format
+     * conversion if applicable, then adds the item to the optimization queue.
+     *
+     * @hook wp_generate_attachment_metadata
+     *
+     * @param array $meta WordPress attachment metadata array.
+     * @param int   $id   Attachment post ID.
+     * @return array The (possibly updated) attachment metadata.
+     */
+    public function handleImageUploadHook($meta, $id)
+    {
+
+        // Media only hook
+				if ( in_array($id, self::$preventUploadHook))
+				{
+					 return $meta;
+				}
+
+        // todo add check here for mediaitem
+			  $fs = \wpSPIO()->filesystem();
+				$fs->flushImageCache(); // it's possible file just changed by external plugin.
+        $mediaItem = $fs->getImage($id, 'media');
+
+				if ($mediaItem === false)
+				{
+					 Log::addError('Handle Image Upload Hook triggered, by error in image :' . $id );
+					 return $meta;
+				}
+
+				if ($mediaItem->getExtension()  == 'pdf')
+				{
+					$settings = \wpSPIO()->settings();
+					if (! $settings->optimizePdfs)
+					{
+						 Log::addDebug('Image Upload Hook detected PDF, which is turned off - not optimizing');
+						 return $meta;
+					}
+				}
+
+        $handleImage = apply_filters('shortpixel/media/uploadhook', true, $mediaItem, $meta, $id);
+
+        // Short-circuit in certain cases if needed.
+        if (false === $handleImage)
+        {
+           return $meta;
+        }
+
+        // Load compat stuff if ajax, just to be sure. When null is meta, this can be an integration
+        if (wp_doing_ajax() || is_null($meta))
+        {
+          $this->loadCronCompat();
+        }
+
+				if ($mediaItem->isProcessable())
+				{
+					$converter = Converter::getConverter($mediaItem, true);
+
+          // Convert only done by PNG atm, the rest is done via ImageModelToQueue.
+          if (is_object($converter) && $converter->isConvertable())
+					{
+							$args = array('runReplacer' => false);
+
+						 	$res = $converter->convert($args);
+							$mediaItem = $fs->getImage($id, 'media', false);
+
+							$meta = $converter->getUpdatedMeta();
+
+              //do_action('shortpixel/converter/prevent-offload-off', $id);
+           }
+
+         // $autoAi = $settings->
+         $optimizeAiController = OptimizeAiController::getInstance(); 
+         $queueController = new QueueController();
+
+        /* if ($optimizeAiController->isAutoAiEnabled())
+         {
+            $args = ['action' => 'requestAlt'];
+            $queueController->addItemToQueue($mediaItem, $args); 
+         } */
+                 
+          
+        	$result = $queueController->addItemToQueue($mediaItem);
+				}
+				else {
+					Log::addWarn('Passed mediaItem is not processable', $id);
+				}
+        return $meta; // It's a filter, otherwise no thumbs
+    }
+
+    /**
+     * Handles the upload hook to enqueue a newly uploaded image for AI alt-text generation.
+     *
+     * Skips IDs listed in the prevent-hook array. On success the item is added to the
+     * queue with the requestAlt action.
+     *
+     * @param array $meta WordPress attachment metadata.
+     * @param int   $id   Attachment post ID.
+     * @return array The unchanged attachment metadata.
+     */
+    public function handleAiImageUploadHook($meta, $id)
+    {
+              // Media only hook
+				if ( in_array($id, self::$preventUploadHook))
+				{
+					 return $meta;
+				}
+
+        $fs = \wpSPIO()->filesystem();
+				$fs->flushImageCache(); // it's possible file just changed by external plugin.
+        $mediaItem = $fs->getImage($id, 'media');
+
+				if ($mediaItem === false)
+				{
+					 Log::addError('Handle Image Upload Hook triggered, by error in image :' . $id );
+					 return $meta;
+				}
+
+         $queueController = new QueueController();
+        
+        $args = ['action' => 'requestAlt'];
+        $result = $queueController->addItemToQueue($mediaItem, $args); 
+         
+        return $meta;
+    }
+
+
+    /**
+     * Prevent autohandling image for integrations, i.e. when external source wants to generate thumbnails or edit attachments
+     * @param  integer $id            media id
+     * @return null
+     */
+		public function preventImageHook($id)
+		{
+			  self::$preventUploadHook[] = $id;
+		}
+
+		/**
+		 * Returns a placeholder URL (with a .jpg extension) for convertable image formats such as HEIC.
+		 *
+		 * Helps downstream database-replacement operations find the correct URL after a
+		 * format conversion has produced a JPEG stand-in. Returns the original URL unchanged
+		 * when the extension is not in the list of convertable types or when no placeholder
+		 * has been set on the media item.
+		 *
+		 * @param string $url     The original attachment URL.
+		 * @param int    $post_id The attachment post ID.
+		 * @return string The (possibly rewritten) attachment URL.
+		 */
+		public function checkPlaceHolder($url, $post_id)
+		{
+
+			$extension = pathinfo($url,  PATHINFO_EXTENSION);
+			if (false === in_array($extension, ApiConverter::CONVERTABLE_EXTENSIONS))
+			{
+				 return $url;
+			}
+
+			$fs = \wpSPIO()->filesystem();
+			$mediaImage = $fs->getImage($post_id, 'media');
+
+			if (false === $mediaImage)
+			{
+				 return $url;
+			}
+
+			if (false === $mediaImage->getMeta()->convertMeta()->hasPlaceholder())
+			{
+				return $url;
+			}
+
+			$url = str_replace($extension, 'jpg', $url);
+
+			return $url;
+		}
+
+    /**
+     * Processes image optimization triggered by the WP-Cron system.
+     *
+     * Normalises the bulk argument passed by WP-Cron and delegates to
+     * processQueueHook() with sensible cron-specific defaults (10 max runs,
+     * 50-second time limit, 1-second sleep between rounds).
+     *
+     * @param array|bool $bulk Cron argument array (may contain a 'bulk' key) or a bool.
+     * @return void
+     */
+    public function processCronHook($bulk)
+    {
+       // Cron shenenigans
+        if (is_array($bulk) && isset($bulk['bulk']))
+        {
+           $bulk = $bulk['bulk'];
+        }
+
+        $args = array(
+            'max_runs' => 10,
+            'run_once' => false,
+            'bulk' => $bulk,
+            'source' => 'cron',
+            'timelimit' => 50,
+            'wait' => 1,
+        );
+
+
+        return $this->processQueueHook($args);
+    }
+
+	/**
+	 * Runs the image-optimization queue in a loop until it is empty or a limit is reached.
+	 *
+	 * Supports optional time limits, maximum run counts, and single-pass mode. Loads
+	 * cron-compatibility functions when called from within WP-Cron. Applies the
+	 * shortpixel/process_hook/options filter so external code can adjust the behaviour.
+	 *
+	 * @param array $args {
+	 *     Optional runtime options.
+	 *
+	 *     @type int        $wait      Seconds to sleep between rounds. Default 3.
+	 *     @type bool       $run_once  When true, process the queue only once. Default false.
+	 *     @type string[]   $queues    Queue names to process. Default ['media','custom'].
+	 *     @type bool       $bulk      Whether this is a bulk run. Default false.
+	 *     @type int        $max_runs  Maximum iterations; -1 means unlimited. Default -1.
+	 *     @type string     $source    Caller identifier used by filters. Default 'hook'.
+	 *     @type int|false  $timelimit Hard time limit in seconds, or false. Default false.
+	 * }
+	 * @return void
+	 */
+		public function processQueueHook($args = array())
+		{
+				$defaults = array(
+					'wait' => 3, // amount of time to wait for next round. Prevents high loads
+					'run_once' => false, //  If true queue must be run at least every few minutes. If false, it tries to complete all.
+					'queues' => array('media','custom'),
+					'bulk' => false, // changing this might change important behavior
+          'max_runs' => -1, // if < 0 run until end, otherwise cut out at some point.
+          'source' => 'hook', // not used but can be used in the filter to see what type of job is running
+          'timelimit' => false, //timelimit in seconds or false
+				);
+
+				if (wp_doing_cron())
+				{
+					 $this->loadCronCompat();
+				}
+
+				$args = wp_parse_args($args, $defaults);
+        $args = apply_filters('shortpixel/process_hook/options', $args);
+
+        $queueArgs = []; 
+				if (true == $args['bulk'])
+				{
+					 $queueArgs['is_bulk'] = true;
+				}
+
+
+			  $control = new QueueController($queueArgs);
+        $env = \wpSPIO()->env();
+
+			 	if ($args['run_once'] === true)
+				{
+					 return	$control->processQueue($args['queues']);
+				}
+
+				$running = true;
+				$i = 0;
+        $max_runs = $args['max_runs'];
+        $timelimit = $args['timelimit'];
+
+				while($running)
+				{
+							 	$results = $control->processQueue($args['queues']);
+								$running = false;
+
+								foreach($args['queues'] as $qname)
+								{
+									  if (property_exists($results, $qname))
+										{
+											  $result = $results->$qname;
+												// If Queue is not completely empty, there should be something to do.
+												if ($result->qstatus != QUEUE::RESULT_QUEUE_EMPTY)
+												{
+													 $running = true;
+													 continue;
+												}
+										}
+								}
+
+              $i++;
+              if($max_runs > 0 && $i >= $max_runs)
+              {
+                 break;
+              }
+              if ($timelimit !== false && true === $env->IsOverTimeLimit(['limit' => $timelimit]))
+              {
+                 Log::addDebug('Hook: over timelimit detected, returning', $timelimit);
+                 break;
+              }
+							sleep($args['wait']);
+				}
+		}
+
+    /**
+     * Iterates over custom (other-media) folders that are due for a content refresh.
+     *
+     * Skips execution when no custom images are registered. Loops until no refreshable
+     * folder is found, the amount limit is reached, or the caller breaks out.
+     *
+     * @param array $args {
+     *     Optional runtime options.
+     *
+     *     @type bool  $force    Force refresh even when not due. Default false.
+     *     @type int   $wait     Seconds to sleep between folder scans. Default 3.
+     *     @type int   $amount   Maximum number of folders to refresh; -1 means unlimited. Default -1.
+     *     @type int   $interval Minimum age in seconds before a folder is re-scanned. Default 6 hours.
+     * }
+     * @return false|void Returns false when there are no custom images; otherwise void.
+     */
+    public function scanCustomFoldersHook($args = array())
+    {
+      $defaults = array(
+        'force' => false,
+        'wait' => 3,
+        'amount' => -1,  // amount of directories to refresh.
+        'interval' => 6 * HOUR_IN_SECONDS,
+      );
+
+      $args = wp_parse_args($args, $defaults);
+
+      $otherMediaController = OtherMediaController::getInstance();
+      if (false === $otherMediaController->hasCustomImages())
+      {
+         return false;
+      }
+
+
+
+      $args = apply_filters('shortpixel/othermedia/scan_custom_folder', $args);
+
+      $running = true;
+      $i = 0;
+
+      while (true === $running)
+      {
+        $result = $otherMediaController->doNextRefreshableFolder($args);
+        if (false === $result) // stop on false return.
+        {
+           $running = false;
+        }
+        sleep($args['wait']);
+
+        $i++;
+        if ($args['amount'] > 0 && $i >= $args['amount'])
+        {
+           break;
+        }
+
+      }
+
+    }
+
+    /**
+     * Enriches REST API attachment responses with WebP and AVIF source URLs.
+     *
+     * Hooked into the REST response pipeline; only acts on attachment post types that
+     * have at least one optimized WebP or AVIF variant. Adds source_url_webp /
+     * source_url_avif fields at the top level and inside each media_details size entry.
+     *
+     * @param \WP_REST_Response $result The current REST response object.
+     * @param \WP_REST_Server   $server The REST server instance.
+     * @param \WP_REST_Request  $request The REST request object.
+     * @return \WP_REST_Response The (possibly enriched) REST response.
+     */
+    public function checkRestMedia($result, $server, $request )
+    {
+      $data = $result->data; 
+      if (! is_array($data) || ! isset($data['type']) || $data['type'] !== 'attachment') // check if for us. 
+      {
+         return $result; 
+      }
+
+      $attach_id = $data['id'];
+       
+      $fs = \wpSPIO()->filesystem();
+			$mediaImage = $fs->getImage($attach_id, 'media');
+
+      if (false === $mediaImage)
+      {
+         return $result; 
+      }
+
+      $urls = $mediaImage->getAllUrls(); 
+      $webps = $urls['webp']; 
+      $avifs = $urls['avif']; 
+
+      if (count($webps) == 0 && count($avifs) == 0)
+      {
+         return $result; 
+      }
+
+      $mainKey = $mediaImage->getImageKey('main'); 
+
+
+      if (isset($webps[$mainKey]))
+      {
+        $result->data['source_url_webp'] = $webps[$mainKey];
+      }
+
+      if (isset($avifs[$mainKey]))
+      {
+        $result->data['source_url_avif'] = $avifs[$mainKey];
+      }
+
+      foreach($data['media_details']['sizes'] as $sizeName => $sizeData )
+      {
+          if (isset($webps[$sizeName]))
+          {
+             $result->data['media_details']['sizes'][$sizeName]['source_url_webp'] = $webps[$sizeName];
+          }
+          if (isset($avifs[$sizeName]))
+          {
+             $result->data['media_details']['sizes'][$sizeName]['source_url_avif'] = $avifs[$sizeName];
+          }
+      }
+
+      return $result; 
+    }
+
+		/**
+		 * Includes WordPress admin functions that are not loaded during cron execution.
+		 *
+		 * Conditionally includes wp-admin/includes/admin.php and image.php so that
+		 * functions like download_url() and wp_generate_attachment_metadata() are
+		 * available when the plugin runs inside a cron or AJAX context.
+		 *
+		 * @return void
+		 */
+		protected function loadCronCompat()
+		{
+			  if (false === function_exists('download_url'))
+				{
+					 include_once(ABSPATH . "wp-admin/includes/admin.php");
+				}
+
+         if (false === function_exists('wp_generate_attachment_metadata'))
+         {
+           include_once(ABSPATH . 'wp-admin/includes/image.php' );
+         }
+		}
+
+    /** Filter for Medialibrary items in list and grid view. Because grid uses ajax needs to be caught more general.
+    * @handles pre_get_posts
+    * @param WP_Query $query
+    *
+    * @return WP_Query
+    */
+    public function filter_listener($query)
+    {
+      global $pagenow;
+
+      if ( empty( $query->query_vars["post_type"] ) || 'attachment' !== $query->query_vars["post_type"] ) {
+        return $query;
+      }
+
+      if ( ! in_array( $pagenow, array( 'upload.php', 'admin-ajax.php' ) ) ) {
+        return $query;
+      }
+
+      $filter = $this->selected_filter_value( 'shortpixel_status', 'all' );
+
+      // No filter
+      if ($filter == 'all')
+      {
+         return $query;
+      }
+
+//      add_filter( 'posts_join', array( $this, 'filter_join' ), 10, 2 );
+  		add_filter( 'posts_where', array( $this, 'filter_add_where' ), 10, 2 );
+//  		add_filter( 'posts_orderby', array( $this, 'query_add_orderby' ), 10, 2 );
+
+      return $query;
+    }
+
+    /**
+     * Appends WHERE clauses to the media-library query to implement the ShortPixel status filter.
+     *
+     * Handles three filter values: 'unoptimized' (items without a success record),
+     * 'optimized' (items with at least one success record), and 'prevented' (items
+     * explicitly excluded from optimization). Has no effect when the filter is 'all'.
+     *
+     * @param string    $where The current WHERE SQL fragment.
+     * @param \WP_Query $query The active WP_Query instance.
+     * @return string The (possibly extended) WHERE SQL fragment.
+     */
+    public function filter_add_where ($where, $query)
+    {
+        global $wpdb;
+        $filter = $this->selected_filter_value( 'shortpixel_status', 'all' );
+        $tableName = UtilHelper::getPostMetaTable();
+
+        switch($filter)
+        {
+             case 'all':
+
+             break;
+             case 'unoptimized':
+              // The parent <> %d exclusion is meant to also deselect duplicate items ( translations ) since they don't have a status, but shouldn't be in a list like this.
+                $sql = " AND " . $wpdb->posts . '.ID not in ( SELECT  attach_id FROM ' . $tableName . " WHERE (parent = %d and status = %d) OR parent <> %d ) ";
+  					    $where .= $wpdb->prepare($sql, MediaLibraryModel::IMAGE_TYPE_MAIN, ImageModel::FILE_STATUS_SUCCESS, MediaLibraryModel::IMAGE_TYPE_MAIN);
+             break;
+             case 'optimized':
+								$sql = ' AND ' . $wpdb->posts . '.ID in ( SELECT distinct attach_id FROM ' . $tableName . ' WHERE status = %d) ';
+   					    $where .= $wpdb->prepare($sql, ImageModel::FILE_STATUS_SUCCESS);
+             break;
+             case 'prevented':
+
+                $sql = sprintf('AND %s.ID in (SELECT post_id FROM %s WHERE meta_key = %%s)', $wpdb->posts, $wpdb->postmeta);
+
+                $sql .= sprintf(' AND %s.ID not in ( SELECT attach_id FROM %s WHERE parent = 0 and status = %s)', $wpdb->posts, $tableName, ImageModel::FILE_STATUS_MARKED_DONE);
+
+                $where = $wpdb->prepare($sql, '_shortpixel_prevent_optimize');
+            break;
+        }
+
+        return $where;
+    }
+
+
+    /**
+  	 * Safely retrieve the selected filter value from a dropdown.
+  	 *
+  	 * @param string $key
+  	 * @param string $default
+  	 *
+  	 * @return string
+  	 */
+  	private function selected_filter_value( $key, $default ) {
+  		if ( wp_doing_ajax() ) {
+  			if ( isset( $_REQUEST['query'][ $key ] ) ) {
+  				$value = sanitize_text_field( $_REQUEST['query'][ $key ] );
+  			}
+  		} else {
+  			if ( ! isset( $_REQUEST['filter_action'] )  ) {
+  				return $default;
+  			}
+
+  			if ( ! isset( $_REQUEST[ $key ] ) ) {
+  				return $default;
+  			}
+
+  			$value = sanitize_text_field( $_REQUEST[ $key ] );
+  		}
+
+  		return ! empty( $value ) ? $value : $default;
+  	}
+
+    /**
+     * Clears ShortPixel optimization data when an attachment is replaced via Enable Media Replace.
+     *
+     * Deletes the existing optimization records for the attachment so that the
+     * replacement file is treated as a fresh upload.
+     *
+     * @hook wp_handle_replace
+     * @integration Enable Media Replace
+     *
+     * @param array $params Hook parameters; must contain a 'post_id' key.
+     * @return void
+     */
+    public function handleReplaceHook($params)
+    {
+      if(isset($params['post_id'])) { //integration with EnableMediaReplace - that's an upload for replacing an existing ID
+
+          $post_id = intval($params['post_id']);
+          $fs = \wpSPIO()->filesystem();
+
+          $imageObj = $fs->getImage($post_id, 'media');
+          // In case entry is corrupted data, this might fail.
+          if (is_object($imageObj))
+          {
+            $imageObj->onDelete();
+          }
+      }
+
+    }
+
+		/**
+		 * Re-enqueues an attachment for optimization after it has been replaced via Enable Media Replace.
+		 *
+		 * Delegates to handleImageUploadHook() so all the standard upload checks and
+		 * queue logic are reused.
+		 *
+		 * @param string $target   Path to the replacement (new) file.
+		 * @param string $source   Path to the original (old) file.
+		 * @param int    $post_id  Attachment post ID of the replaced item.
+		 * @return void
+		 */
+		public function handleReplaceEnqueue($target, $source, $post_id)
+		{
+				// Delegate this to the hook, so all checks are done there.
+				$this->handleImageUploadHook(array(), $post_id);
+
+		}
+
+    /** This function is bound to enable-media-replace hook and fired when a file was replaced
+		*
+		*
+		*/
+    public function handleAiReplaceEnqueue($target, $source, $post_id)
+		{
+				// Delegate this to the hook, so all checks are done there.
+				$this->handleAiImageUploadHook(array(), $post_id);
+
+		}
+
+
+    public function generatePluginLinks($links) {
+        $in = '<a href="options-general.php?page=wp-shortpixel-settings">Settings</a>';
+        array_unshift($links, $in);
+        return $links;
+    }
+
+    /**
+     * Extends the WordPress allowed MIME type list to include WebP, AVIF, HEIC, and HEIF.
+     *
+     * Only adds WebP and AVIF when the corresponding generation settings are enabled.
+     * HEIC and HEIF are always added to allow uploads of those source formats.
+     *
+     * @param array<string,string> $mimes Existing MIME type map (extension => mime type).
+     * @return array<string,string> Extended MIME type map.
+     */
+    public function addMimes($mimes)
+    {
+        $settings = \wpSPIO()->settings();
+        if ($settings->createWebp)
+        {
+            if (! isset($mimes['webp']))
+              $mimes['webp'] = 'image/webp';
+        }
+        if ($settings->createAvif)
+        {
+            if (! isset($mimes['avif']))
+              $mimes['avif'] = 'image/avif';
+        }
+
+				if (! isset($mimes['heic']))
+				{
+					$mimes['heic'] = 'image/heic';
+				}
+
+				if (! isset($mimes['heif']))
+				{
+					$mimes['heif'] = 'image/heif';
+				}
+
+        return $mimes;
+    }
+
+		/** Media library gallery view, attempt to add fields that looks like the SPIO status */
+		public function editAttachmentScreen($fields, $post)
+		{
+      return;
+				// Prevent this thing running on edit media screen. The media library grid is before the screen is set, so just check if we are not on the attachment window.
+				$screen_id = \wpSPIO()->env()->screen_id;
+				if ($screen_id == 'attachment')
+				{
+					return $fields;
+				}
+
+				$fields["shortpixel-image-optimiser"] = array(
+							"label" => esc_html__("ShortPixel", "shortpixel-image-optimiser"),
+							"input" => "html",
+							"html" => '<div id="shortpixel-data-' . $post->ID . '">--</div>',
+						);
+
+				return $fields;
+		}
+
+		public function printComparer()
+		{
+
+				$screen_id = \wpSPIO()->env()->screen_id;
+				if ($screen_id !== 'upload')
+				{
+					return false;
+				}
+
+				$view = \ShortPixel\Controller\View\ListMediaViewController::getInstance();
+				$view->loadComparer();
+		}
+
+    /** When an image is deleted
+    * @hook delete_attachment
+    * @param int $post_id  ID of Post
+    * @return itemHandler ItemHandler object.
+    */
+    public function onDeleteAttachment($post_id) {
+        Log::addDebug('onDeleteImage - Image Removal Detected ' . $post_id);
+        $result = null;
+        $fs = \wpSPIO()->filesystem();
+
+        try
+        {
+          $imageObj = $fs->getImage($post_id, 'media');
+					//Log::addDebug('OnDelete ImageObj', $imageObj);
+          if ($imageObj !== false)
+            $result = $imageObj->onDelete();
+        }
+        catch(\Exception $e)
+        {
+          Log::addError('OndeleteImage triggered an error. ' . $e->getMessage(), $e);
+        }
+        return $result;
+    }
+
+
+
+    /** Displays an icon in the toolbar when processing images
+    *   hook - admin_bar_menu
+    *  @param Obj $wp_admin_bar
+    */
+    public function toolbar_shortpixel_processing( $wp_admin_bar ) {
+
+        if (! \wpSPIO()->env()->is_screen_to_use )
+          return; // not ours, don't load JS and such.
+
+        $settings = \wpSPIO()->settings();
+        $access = AccessModel::getInstance();
+				$quotaController = QuotaController::getInstance();
+
+        $extraClasses = " shortpixel-hide";
+        /*translators: toolbar icon tooltip*/
+        $id = 'short-pixel-notice-toolbar';
+        $tooltip = __('ShortPixel optimizing...','shortpixel-image-optimiser');
+        $icon = "shortpixel.png";
+        $successLink = $link = admin_url(current_user_can( 'edit_others_posts')? 'upload.php?page=wp-short-pixel-bulk' : 'upload.php');
+        $blank = "";
+
+        if($quotaController->hasQuota() === false)
+				{
+            $extraClasses = " shortpixel-alert shortpixel-quota-exceeded";
+            /*translators: toolbar icon tooltip*/
+            $id = 'short-pixel-notice-exceed';
+            $tooltip = '';
+
+            if ($access->userIsAllowed('quota-warning'))
+            {
+              $exceedTooltip = __('ShortPixel quota exceeded. Click for details.','shortpixel-image-optimiser');
+              //$link = "http://shortpixel.com/login/" . $this->_settings->apiKey;
+              $link = "options-general.php?page=wp-shortpixel-settings";
+            }
+            else {
+              $exceedTooltip = __('ShortPixel quota exceeded. Click for details.','shortpixel-image-optimiser');
+              //$link = "http://shortpixel.com/login/" . $this->_settings->apiKey;
+              $link = false;
+            }
+        }
+
+        $args = array(
+                'id'    => 'shortpixel_processing',
+                'title' => '<div id="' . $id . '" title="' . $tooltip . '"><span class="stats hidden">0</span><img alt="' . __('ShortPixel icon','shortpixel-image-optimiser') . '" src="'
+                         . plugins_url( 'res/img/'.$icon, SHORTPIXEL_PLUGIN_FILE ) . '" success-url="' . $successLink . '"><span class="shp-alert">!</span>'
+                         . '<div class="controls">
+                              <span class="dashicons dashicons-controls-pause pause" title="' . __('Pause', 'shortpixel-image-optimiser') . '">&nbsp;</span>
+                              <span class="dashicons dashicons-controls-play play" title="' . __('Resume', 'shortpixel-image-optimiser') . '">&nbsp;</span>
+                            </div>'
+
+                         .'<div class="cssload-container"><div class="cssload-speeding-wheel"></div></div></div>',
+    //            'href'  => 'javascript:void(0)', // $link,
+                'meta'  => array('target'=> $blank, 'class' => 'shortpixel-toolbar-processing' . $extraClasses)
+        );
+        $wp_admin_bar->add_node( $args );
+
+        if($quotaController->hasQuota() === false)
+				{
+            $wp_admin_bar->add_node( array(
+                'id'    => 'shortpixel_processing-title',
+                'parent' => 'shortpixel_processing',
+                'title' => $exceedTooltip,
+                'href'  => $link
+            ));
+
+        }
+    }
+
+} // class

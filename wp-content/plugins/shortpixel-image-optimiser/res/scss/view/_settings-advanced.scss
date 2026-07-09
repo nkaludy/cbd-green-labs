@@ -1,0 +1,17 @@
+/* Specific styles for advanced settings tab */
+
+       .deliverWebpTypes, .picture-option-list {
+    margin: 16px 0 16px 16px;
+               padding: 2px; // allow to full draw of checkbox
+       }
+
+
+	.avifNoticeDisabled
+	{
+		 padding: 12px 12px;
+		 line-height: 26px;
+		 > .spio-inline-help {
+			  display: inline;
+				float: none;
+		 }
+	}

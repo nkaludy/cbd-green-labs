@@ -1,0 +1,491 @@
+
+// in our own scope.
+	a {
+		color: $color-darkest;
+
+	}
+	p {
+	//	font-size: 14px;
+	}
+
+	.new {
+		color: #ff0000;
+  	font-weight: 500;
+  	margin-left: 2px;
+	}
+
+	.shortpixel-key-valid {
+	  //  font-weight: bold;
+		//	margin-left: 25px;
+		//margin-top: 16px;
+		display: inline-block;
+
+	}
+
+	/* TABS CONTROLS */
+
+
+	.button-primary, .button-primary:focus {
+		//background-color: $color-darkest;
+		//border-color: $color-darkest;
+		//color: #fff;
+		&:hover
+		{
+			background-color: $color-dark;
+			border-color: $color-darkest;
+
+		}
+
+	}
+
+	button {
+		 cursor:pointer;
+	}
+
+
+  .upgrade-banner
+  {
+	  //height: 180px;
+	  width: 220px;
+	  height: 305px;
+	  margin: 16px 9px 7px 2px;
+	  border-radius: 0.7rem;
+	  background-color: $blue_background;
+
+	  .robo-container {
+		  display: flex;
+		  flex-direction: row;
+		  align-items: center;
+
+	  }
+	  	.robo-from-banner{
+			margin: 0 16px;
+		}
+
+	  	h2{
+			font-family: Roboto, serif;
+			font-weight: 700;
+			color: $blue_dark;
+		}
+
+	  .banner-line-container {
+
+		  display: flex;
+		  flex-direction: row;
+		  align-items: center;
+		  height: 30px;
+		  font-family: Roboto, serif;
+		  font-weight: 400;
+		  color: $blue_dark;
+	  }
+
+		  .shortpixel-icon.ok {
+			  width: 17px;
+			  height: 18px;
+			  margin-right: 8px;
+			  margin-left: 10px;
+		  }
+
+	   	.button {
+			padding: 10px 12px;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			width: max-content;
+			height: 40px;
+			font-size: 14px;
+			//top: 160px;
+			margin: 13px auto;
+			background: darken(#ff0000, 10%);
+			//background: #ED3; // just for check ctrl+shift reload worked :)
+			&:hover {
+				background: #ff0000;
+				//transform: scale(1.05);
+			}
+
+	  }
+		.shortpixel-icon.cart{
+			height: 18px;
+			width: 18px;
+			margin-right: 8px;
+		}
+
+		@include breakpoint(0, 1200px)
+		{
+			max-width: 200px;
+			width: 100%;
+			margin: 0;
+		}
+
+  }
+
+
+  .red {
+     color: #ff0000;
+  }
+
+	.option
+	{
+		 padding: 8px;
+		 display: inline-block;
+		 .button
+		 {
+
+		 }
+		 p {
+			 margin: 14px 0;
+		 }
+	}
+
+	.shortpixel-help-link span.dashicons
+	{
+	    text-decoration: none;
+	    margin-top: -1px;
+	}
+
+	.ajax-save-done
+	{
+		 position: fixed;
+		 bottom: 2em;
+		 width: 60%;
+		 height: 47px;
+		 background-color: #fff;
+		 border: 0px solid #000;
+		 left: 20%;
+	//	 border-radius-all: 25px;
+		 border-radius: 0.7rem;
+		 box-shadow: 0 0.3rem 0.8rem 0.3rem grey;
+		 display: flex;
+		 flex-direction: row;
+		 padding: 5px;
+		 z-index: 10;
+		 transition: all 1s ease-out;
+		 margin-bottom: -100px;
+		 &.show {
+			 margin: 0;
+			 transition: all 200ms ease-in;
+
+		 }
+		.icon-container
+        {
+			display: flex;
+			justify-content: left;
+			align-items: center;
+		}
+
+      	.shortpixel-icon.ok
+      	{
+			width: 27px;
+			height: 29px;
+			margin: 15px 6px 15px 12px;
+			//margin-right: 0.2rem;
+      	}
+
+      	.text-container
+      	{
+		  	display: flex;
+		  	flex-direction: column;
+		  	justify-content: center;
+		  	width: 100%;
+		  	padding-left: 0.5rem;
+			font-family: Roboto, sans-serif;
+      	}
+		h2 {
+			//font-size: 14px;
+			font-weight: 600;
+		 	margin: 0;
+		 	color: $green_highlight;
+		}
+		h3 {
+			font-weight: 400;
+			margin: 0;
+			color: $blue_dark;
+		}
+	}
+
+  //tabs
+  section.setting-tab
+  {
+			.option-content
+			{
+				 display: inline-block;
+			}
+
+
+				.toggleTarget
+				{
+					 display: none;
+					 opacity: 0;
+					 height: 0;
+					 overflow: hidden;
+					 transition: height 350ms ease-in-out, opacity 750ms ease-in-out;
+				}
+
+				.modalTarget
+				{
+					 display: none;
+				}
+
+				.toggleTarget.is-visible
+				{
+					display: block;
+		//			opacity: 1;
+					height: auto;
+
+				}
+
+
+  }
+
+  // cancel out toggleTarget if the field is also only for advanced, and simple mode is active.
+  &.simple section.setting-tab .toggleTarget.is-advanced 
+  {
+	 display: none; 
+  }
+
+  section#tab-optimisation
+  {
+	content.exif-ai img.icon {
+		height: 40px;
+		margin-bottom: -25px;
+		margin-left: 20px;
+
+		@include breakpoint(0, 768px) {
+			height: 25px;
+			float: right;
+			margin-top: -70px;
+			margin-right: -5px;
+		}
+	}
+  }
+
+  section#tab-webp
+  {
+	img.icon {
+		height: 40px;
+		margin-bottom: -20px;
+		margin-left: 30px;
+
+		@include breakpoint(0, 768px) {
+			height: 30px;
+			float: right;
+			margin-top: -30px;
+			margin-right: -5px;
+		}
+	}
+	content input[name="CDNDomain"] {
+		border: 1px solid $blue_default;
+		background-color: #fff;
+		height: 36px;
+		width: 290px;
+		display: inline-block;
+	}
+	content ul li input {
+		width: 1rem;
+		height: 1rem;
+		opacity: 1;
+	//	display: inline-block;
+	}
+	img#exifviewer-img-1 {
+		margin-bottom: -7px;
+	}
+  }
+  section#tab-debug
+  {
+		h2 { left: 738px; }
+     .flex {
+       display: flex;
+     }
+     .env .flex, .fs .flex {
+        flex-wrap: wrap;
+        max-width: 450px;
+        span {
+            width: 45%;
+            padding: 4px;
+        }
+     }
+     .table
+     {
+        display: table;
+        >div {
+            display: table-row;
+            >span {
+              display: table-cell;
+			  padding: 0 4px;
+            }
+            &.head > span { font-weight: 700; }
+        }
+
+     }
+     .table.notices {
+        > div > span
+        {
+           width: 18%;
+           text-align: center;
+        }
+     }
+  }
+
+  section.banner
+  {
+     width: 100%;
+     background-color: #fff;
+     display: flex;
+     align-items: center;
+     border: 1px solid #ccc;
+     margin-top: 35px;
+     margin-bottom: 45px;
+     position: relative;
+
+     @include breakpoint(0, 768px) {
+//	flex-direction: column;
+     }
+
+     span {
+       text-align: center;
+
+     }
+
+     .image {
+			 	flex: 1;
+				text-align: right;
+			  a { display: inline-block;
+					outline: none;
+					border: 0;
+					text-decoration: none;
+
+					&:focus {
+						box-shadow: none;
+					}
+				}
+				img {  width: 180px}
+
+		 }
+     .line {
+        flex: 2;
+
+        h3 {
+					color: #00d0e5;
+					font-size: 22px;
+				};
+
+     }
+     .button-wrap
+     {
+       flex: 1;
+			 text-align: left;
+       .button {
+          background: #ff0000;
+          padding: 4px 12px;
+          font-weight: 700;
+          font-size: 20px;
+          margin: 12px;
+          color: #fff;
+          text-transform: uppercase;
+          //height: 45px;
+       }
+     }
+  }
+
+
+  /* In-view notice ( not on top, between the options ) - styled after WP notice */
+  .view-notice, .compression-notice
+  {
+
+    box-shadow: 0 1px 1px 0 rgba( 0, 0, 0, 0.1 );
+    border: 4px solid #fff;
+
+    padding: 1px 12px;
+    p {
+      margin: 1em 0 !important;
+ 			//line-height: 12px;
+
+    }
+		h4 {
+			margin: 0;
+			font-size: 16px;
+		}
+    &.warning
+    {
+      border-left-color: #ffb900;
+    }
+  }
+
+  .view-notice-row
+  {
+    display: none;
+  }
+
+	.opt-circle-average {
+			width: 100px;
+			height: 100px;
+			.trail {
+				stroke: #ddd;
+			}
+			.path {
+				stroke: $color-dark;
+				stroke-linecap: round;
+				transition: stroke-dashoffset 0.5s ease 0s;
+			}
+			.text {
+
+				fill: #1FBEC9;
+				font-size: 28px;
+				font-weight: 700;
+				dominant-baseline: middle;
+				text-anchor: middle;
+			}
+
+	}
+
+	#tab-help
+	{
+		  	.help-center
+				{
+					background: $blue_background;
+					border-radius: 8px;
+					width: 100%;
+					//padding: 18px;
+					display: flex;
+					//flex-wrap: wrap;
+					//margin-top: 16px;
+
+					@include breakpoint(0, 768px) {
+						flex-direction: column;
+					}
+
+						> div {
+							//	background: $blue_background;
+								border-right: 2px solid $blue_light;
+								margin: 16px 10px;
+								display: flex;
+								padding: 0 4px;
+
+								flex-direction: column;
+								align-items: center;
+								width: 33%;
+							//	min-width: 250px;
+								text-align: center;
+								justify-content: flex-end;
+								.main-icon .icon {
+									 width: 40px;
+
+								}
+								p { min-height: 60px; }
+								&:last-child
+								{
+									 border: 0;
+								}
+							@include breakpoint(0, 768px) {
+								width: 98%;
+								margin: 20px 0;
+								padding-bottom: 20px;
+								border-right: 0;
+								border-bottom: 2px solid $blue_light;
+								position: relative;
+							}
+						}
+				}
+
+
+	} // tab-help

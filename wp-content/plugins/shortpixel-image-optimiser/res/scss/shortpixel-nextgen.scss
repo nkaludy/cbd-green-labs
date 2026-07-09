@@ -1,0 +1,38 @@
+@import 'view/modal';
+
+
+#ngg_page_content .sp-column-info
+{
+		position: relative;
+
+    .button-smaller {
+        min-width: 150px;
+        margin-bottom: 5px;
+				&.button-primary {
+					 font-weight: 700;
+				}
+    }
+		.sp-column-actions {
+			 float: right;
+			 position: absolute;
+			 right: 10px;
+			 top: 0;
+			 margin-top: 0;
+
+			 button.button {
+				 	padding: 0 8px !important;
+			 }
+		}
+		.button {
+			background-color: black;
+			color: #fff;
+
+		}
+		.dashicons::before // reinstate what is removed by nextgen
+		{
+			 font-family: dashicons;
+			 width: 20px;
+			 height: 20px;
+			 font-size: 16px;
+		}
+}

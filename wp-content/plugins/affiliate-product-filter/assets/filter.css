@@ -1,0 +1,708 @@
+/**
+ * [DOC-141] Affiliate Product Filter — front-end styles.
+ *
+ * Mobile-first, four tiers ([DOC-184] Phase 11.2 catalog density:
+ * tablet 2 -> 3 and desktop 3 -> 4 columns, cards slightly compacted
+ * so the denser grid doesn't feel cramped):
+ *   base (<480px)      : 1-column grid, filter panel = bottom drawer
+ *   480px – 767px      : 2-column grid, still drawer
+ *   768px – 1023px     : 3-column grid, static 180px sidebar
+ *   1024px+            : 4-column grid (shortcode-overridable via
+ *                        --afpf-cols-desktop), 220px sidebar
+ *
+ * Everything is driven by CSS custom properties declared on
+ * .afpf-wrap so a child theme can re-skin the whole plugin by
+ * redefining a handful of variables instead of overriding selectors.
+ * The grid column count is ONLY ever set through --afpf-cols inside
+ * media queries; the shortcode's columns= attribute feeds the
+ * separate --afpf-cols-desktop property (inline style), which only
+ * the desktop query consumes — so an inline override can never leak
+ * into tablet/mobile ([DOC-139]).
+ *
+ * Palette: British Racing Green primary, gold accent — quietly
+ * premium, per the "professional catalog, not a toy store" brief.
+ */
+
+.afpf-wrap {
+	--afpf-primary: #1a2e1a;
+	--afpf-primary-dark: #12210f;
+	--afpf-accent: #d4a017;
+	--afpf-text: #222222;
+	--afpf-muted: #6b716b;
+	--afpf-border: #eeebe4; /* [DOC-188] warm, was #e2e5e2 */
+	--afpf-bg: #ffffff;
+	--afpf-bg-soft: #f8f5ee; /* [DOC-188] cream, was #f6f7f6 */
+	--afpf-radius: 6px;
+	--afpf-gap: 20px;
+	--afpf-shadow: 0 1px 3px rgba(26, 46, 26, 0.08);
+	--afpf-shadow-lift: 0 8px 24px rgba(26, 46, 26, 0.1); /* [DOC-188] */
+	--afpf-cols: 1;
+
+	color: var(--afpf-text);
+}
+
+/* ------------------------------------------------------------------
+ * Top bar: search, live count, mobile Filters button.
+ * ------------------------------------------------------------------ */
+.afpf-topbar {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.afpf-search {
+	flex: 1 1 240px;
+	/* Never let the flex row squeeze the search below full-placeholder
+	   width ("Search products…" needs ~200px at 15px). */
+	min-width: 220px;
+}
+
+.afpf-search-input {
+	background: var(--afpf-bg);
+	border: 1px solid var(--afpf-border);
+	border-radius: var(--afpf-radius);
+	/* Explicit border-box so width:100% includes padding/border even on
+	   clones whose theme doesn't set a global box-sizing reset —
+	   without it the input overflows or shrinks its visible text area. */
+	box-sizing: border-box;
+	font-size: 15px;
+	padding: 10px 14px;
+	width: 100%;
+}
+
+.afpf-search-input:focus {
+	border-color: var(--afpf-primary);
+	box-shadow: 0 0 0 2px rgba(26, 46, 26, 0.15);
+	outline: none;
+}
+
+.afpf-count {
+	color: var(--afpf-muted);
+	font-size: 14px;
+	margin: 0;
+	white-space: nowrap;
+}
+
+.afpf-mobile-toggle {
+	align-items: center;
+	background: var(--afpf-primary);
+	border: none;
+	border-radius: var(--afpf-radius);
+	color: #ffffff;
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 14px;
+	gap: 8px;
+	padding: 10px 16px;
+}
+
+.afpf-badge {
+	background: var(--afpf-accent);
+	border-radius: 999px;
+	color: var(--afpf-primary);
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	min-width: 20px;
+	padding: 4px 6px;
+	text-align: center;
+}
+
+/* ------------------------------------------------------------------
+ * Active filter chips above the results.
+ * ------------------------------------------------------------------ */
+.afpf-active-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 14px;
+}
+
+.afpf-chip {
+	/* [DOC-188] active filters read as commitments: green/gold. */
+	align-items: center;
+	background: var(--afpf-primary);
+	border: 1px solid var(--afpf-primary);
+	border-radius: 999px;
+	color: var(--afpf-accent);
+	display: inline-flex;
+	font-size: 13px;
+	gap: 6px;
+	padding: 5px 12px;
+}
+
+.afpf-chip button {
+	background: none;
+	border: none;
+	color: rgba(255, 255, 255, 0.7); /* [DOC-188] */
+	cursor: pointer;
+	font-size: 15px;
+	line-height: 1;
+	padding: 0 0 0 2px;
+}
+
+.afpf-chip button:hover {
+	color: #ffffff; /* [DOC-188] */
+}
+
+/* ------------------------------------------------------------------
+ * Layout: drawer-by-default panel + results.
+ * ------------------------------------------------------------------ */
+.afpf-layout {
+	align-items: flex-start;
+	display: flex;
+	gap: var(--afpf-gap);
+}
+
+.afpf-results {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Panel as mobile bottom drawer (base state). */
+.afpf-panel {
+	background: var(--afpf-bg);
+	border-radius: 14px 14px 0 0;
+	bottom: 0;
+	box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+	left: 0;
+	max-height: 78vh;
+	overflow-y: auto;
+	padding: 18px;
+	position: fixed;
+	right: 0;
+	transform: translateY(105%);
+	transition: transform 0.28s ease;
+	z-index: 9999;
+}
+
+.afpf-wrap.afpf-drawer-open .afpf-panel {
+	transform: translateY(0);
+}
+
+.afpf-drawer-overlay {
+	background: rgba(18, 33, 15, 0.5);
+	inset: 0;
+	position: fixed;
+	z-index: 9998;
+}
+
+.afpf-panel-head {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.afpf-panel-title {
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.afpf-drawer-close {
+	background: none;
+	border: none;
+	color: var(--afpf-muted);
+	cursor: pointer;
+	font-size: 26px;
+	line-height: 1;
+	padding: 2px 8px;
+}
+
+/* Filter groups. */
+.afpf-group {
+	border: none;
+	border-top: 1px solid var(--afpf-border);
+	margin: 0;
+	padding: 14px 0;
+}
+
+.afpf-group-title {
+	color: var(--afpf-primary); /* [DOC-188] */
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	padding: 0 0 4px;
+	text-transform: uppercase;
+}
+
+.afpf-group-search {
+	border: 1px solid var(--afpf-border);
+	border-radius: var(--afpf-radius);
+	/* border-box for the same reason as .afpf-search-input: the input
+	   must fill the panel column exactly, whatever the theme's global
+	   box model is. display:block defeats any theme width/size rules
+	   on inline inputs. */
+	box-sizing: border-box;
+	display: block;
+	font-size: 13px;
+	margin: 6px 0;
+	padding: 6px 10px;
+	width: 100%;
+}
+
+/* Chip-style options in the drawer; column list on larger screens. */
+.afpf-group-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding-top: 6px;
+}
+
+.afpf-check {
+	align-items: center;
+	background: var(--afpf-bg-soft);
+	border: 1px solid var(--afpf-border);
+	border-radius: 999px;
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 13px;
+	gap: 6px;
+	padding: 6px 12px;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.afpf-check input {
+	accent-color: var(--afpf-primary);
+	margin: 0;
+}
+
+/* Chip turns solid green when its checkbox is on. */
+.afpf-check:has(input:checked) {
+	background: var(--afpf-primary);
+	border-color: var(--afpf-primary);
+	color: #ffffff;
+}
+
+.afpf-check:has(input:checked) .afpf-check-count {
+	color: var(--afpf-accent);
+}
+
+.afpf-check-count {
+	color: var(--afpf-muted);
+	font-size: 12px;
+}
+
+/* Brand top-5 collapse: overflow entries hidden until expanded. */
+.afpf-group-collapsed .afpf-check-overflow {
+	display: none;
+}
+
+.afpf-group-collapsed.afpf-group-open .afpf-check-overflow {
+	display: inline-flex;
+}
+
+/* Client-side brand search hides non-matching options. */
+.afpf-check.afpf-check-filtered {
+	display: none;
+}
+
+.afpf-group-more {
+	background: none;
+	border: none;
+	color: var(--afpf-primary);
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	margin-top: 8px;
+	padding: 0;
+	text-decoration: underline;
+}
+
+.afpf-clear-all {
+	background: none;
+	border: 1px solid var(--afpf-border);
+	border-radius: var(--afpf-radius);
+	color: var(--afpf-muted);
+	cursor: pointer;
+	display: block;
+	font-size: 13px;
+	margin-top: 14px;
+	padding: 9px 12px;
+	width: 100%;
+}
+
+.afpf-clear-all:hover {
+	border-color: var(--afpf-primary);
+	color: var(--afpf-primary);
+}
+
+/* ------------------------------------------------------------------
+ * Product grid + cards.
+ * ------------------------------------------------------------------ */
+.afpf-grid {
+	display: grid;
+	gap: var(--afpf-gap);
+	grid-template-columns: repeat(var(--afpf-cols), minmax(0, 1fr));
+}
+
+.afpf-card {
+	background: var(--afpf-bg);
+	border: 1px solid var(--afpf-border);
+	border-radius: 12px; /* [DOC-188] cards 12px; --afpf-radius stays for inputs */
+	box-shadow: var(--afpf-shadow);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+/* Subtle hover lift, desktop pointers only. */
+@media (hover: hover) {
+	.afpf-card:hover {
+		border-color: var(--afpf-accent);
+		box-shadow: var(--afpf-shadow-lift);
+		transform: translateY(-3px);
+	}
+}
+
+.afpf-card-media {
+	/* [DOC-184] A touch shorter than the original 1/1 square so four
+	   cards across still leave room for the text below the fold. */
+	aspect-ratio: 1 / 0.85;
+	/* [DOC-191] White, not the cream token: product photos ship with
+	   white backdrops, and cream behind them read as a dirty tint
+	   around every cutout. The token still colors the no-image
+	   placeholder and panel rows. */
+	background: #ffffff;
+	border-radius: 8px 8px 0 0; /* [DOC-188] */
+	display: block;
+	position: relative;
+}
+
+.afpf-card-media img {
+	display: block;
+	height: 100%;
+	max-width: 100%;
+	object-fit: contain;
+	width: 100%;
+}
+
+.afpf-card-noimage {
+	background:
+		linear-gradient(135deg, var(--afpf-bg-soft) 25%, var(--afpf-border) 25%, var(--afpf-border) 50%, var(--afpf-bg-soft) 50%, var(--afpf-bg-soft) 75%, var(--afpf-border) 75%);
+	background-size: 24px 24px;
+	display: block;
+	height: 100%;
+	opacity: 0.4;
+	width: 100%;
+}
+
+.afpf-badge-brand,
+.afpf-badge-scale {
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	padding: 3px 8px;
+	position: absolute;
+	text-transform: uppercase;
+	top: 10px;
+}
+
+.afpf-badge-brand {
+	/* [DOC-188] soft green tint instead of the solid green block. */
+	background: #eef4ee;
+	border: 1px solid #c8d8c8;
+	color: var(--afpf-primary);
+	left: 10px;
+}
+
+.afpf-badge-scale {
+	/* [DOC-188] warm neutral instead of the solid gold block. */
+	background: #f5f3ee;
+	border: 1px solid #e0ddd6;
+	color: #666666;
+	right: 10px;
+}
+
+.afpf-card-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+}
+
+.afpf-card-title {
+	font-size: 14px;
+	line-height: 1.35;
+	margin: 0;
+}
+
+.afpf-card-title a {
+	color: var(--afpf-text);
+	display: -webkit-box;
+	overflow: hidden;
+	text-decoration: none;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.afpf-card-title a:hover {
+	color: var(--afpf-primary);
+}
+
+.afpf-card-price {
+	color: var(--afpf-primary);
+	font-size: 16px;
+	font-weight: 600; /* [DOC-188] */
+	margin: 0;
+}
+
+.afpf-card-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: auto;
+}
+
+.afpf-btn {
+	border-radius: 5px; /* [DOC-188] */
+	display: inline-block;
+	flex: 1;
+	font-size: 14px;
+	font-weight: 600;
+	padding: 9px 10px;
+	text-align: center;
+	text-decoration: none;
+	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.afpf-btn-view {
+	background: transparent;
+	border: 1px solid #dddddd; /* [DOC-188] neutral, not warm */
+	color: #555555;
+}
+
+.afpf-btn-view:hover {
+	border-color: var(--afpf-primary);
+	color: var(--afpf-primary);
+}
+
+.afpf-btn-buy {
+	background: var(--afpf-primary);
+	border: 1px solid var(--afpf-primary);
+	color: var(--afpf-accent);
+}
+
+.afpf-btn-buy:hover {
+	background: var(--afpf-primary-dark);
+	color: #ffffff;
+}
+
+/* ------------------------------------------------------------------
+ * Results states: fade-in, spinner, empty, load more.
+ * ------------------------------------------------------------------ */
+@keyframes afpf-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.afpf-fade-in {
+	animation: afpf-fade-in 0.35s ease both;
+}
+
+.afpf-grid.afpf-loading {
+	opacity: 0.45;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+.afpf-spinner {
+	animation: afpf-spin 0.8s linear infinite;
+	border: 3px solid var(--afpf-border);
+	border-radius: 50%;
+	border-top-color: var(--afpf-primary);
+	height: 34px;
+	margin: 28px auto;
+	width: 34px;
+}
+
+@keyframes afpf-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.afpf-no-results {
+	color: var(--afpf-muted);
+	padding: 40px 0;
+	text-align: center;
+}
+
+.afpf-load-wrap {
+	text-align: center;
+}
+
+.afpf-load-more {
+	background: transparent;
+	border: 2px solid var(--afpf-primary);
+	border-radius: var(--afpf-radius);
+	color: var(--afpf-primary);
+	cursor: pointer;
+	font-size: 15px;
+	font-weight: 600;
+	margin-top: 28px;
+	padding: 11px 34px;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.afpf-load-more:hover {
+	background: var(--afpf-primary);
+	color: var(--afpf-accent);
+}
+
+.afpf-load-more[disabled] {
+	cursor: wait;
+	opacity: 0.6;
+}
+
+/* Body scroll lock while the drawer is open. */
+body.afpf-no-scroll {
+	overflow: hidden;
+}
+
+/* ==================================================================
+ * 480px+: two-column grid (still drawer).
+ * ================================================================== */
+@media (min-width: 480px) {
+	.afpf-wrap {
+		--afpf-cols: 2;
+	}
+}
+
+/* ==================================================================
+ * 768px+: static sidebar (narrow), drawer chrome off, 3-col grid.
+ * ================================================================== */
+@media (min-width: 768px) {
+	.afpf-wrap {
+		--afpf-cols: 3;
+	}
+
+	.afpf-mobile-toggle,
+	.afpf-panel-head,
+	.afpf-drawer-overlay {
+		display: none;
+	}
+
+	.afpf-panel {
+		background: transparent;
+		border-radius: 0;
+		box-shadow: none;
+		bottom: auto;
+		flex: 0 0 180px;
+		left: auto;
+		max-height: none;
+		overflow: visible;
+		padding: 0;
+		position: static;
+		right: auto;
+		transform: none;
+		transition: none;
+		width: 180px;
+	}
+
+	/* Sidebar options: quiet vertical list instead of chips. */
+	.afpf-group-options {
+		display: block;
+		padding-top: 2px;
+	}
+
+	.afpf-check {
+		background: none;
+		border: none;
+		border-radius: 0;
+		display: flex;
+		justify-content: flex-start;
+		padding: 4px 0;
+	}
+
+	.afpf-check:has(input:checked) {
+		background: none;
+		color: var(--afpf-primary);
+		font-weight: 600;
+	}
+
+	.afpf-check:has(input:checked) .afpf-check-count {
+		color: var(--afpf-muted);
+	}
+
+	.afpf-check-name {
+		flex: 1;
+	}
+
+	.afpf-group-collapsed.afpf-group-open .afpf-check-overflow {
+		display: flex;
+	}
+}
+
+/* ==================================================================
+ * 1024px+: full 220px sidebar, shortcode-controlled column count.
+ * ================================================================== */
+@media (min-width: 1024px) {
+	/* On .afpf-grid (not .afpf-wrap): --afpf-cols-desktop arrives as an
+	   inline style on the grid element itself, and custom properties
+	   substitute BEFORE they inherit — reading it any higher up would
+	   always hit the fallback. */
+	.afpf-grid {
+		--afpf-cols: var(--afpf-cols-desktop, 4);
+	}
+
+	.afpf-panel {
+		flex-basis: 220px;
+		width: 220px;
+	}
+}
+
+
+/* ==================================================================
+ * [DOC-188] Design C: the static sidebar becomes a card.
+ *
+ * Appended (rather than woven into the 768px block above) so it wins
+ * the cascade over the drawer-reset rules at equal specificity. Only
+ * applies where the panel is a sidebar — the mobile drawer keeps its
+ * own chrome.
+ * ================================================================== */
+@media (min-width: 768px) {
+	.afpf-panel {
+		background: var(--afpf-bg);
+		border: 1px solid var(--afpf-border);
+		border-radius: 12px;
+		padding: 16px 18px;
+	}
+}
+
+/* ==================================================================
+ * [DOC-203] Desktop sidebar: sticky-follow BELOW the sticky header.
+ *
+ * The panel was position:static (scrolled away with the page while
+ * the z-999 sticky header slid over it, reading as overlap). Sticky
+ * with top offset = the theme header's measured 100px height + 16px
+ * gap, so the panel follows the scroll but always docks under the
+ * bar, never into it. z-index 1 keeps it below the header's 999 by a
+ * mile. The panel runs ~1000px tall with a full brand list, so
+ * max-height + its own scrollbar keep the bottom groups reachable
+ * while pinned. Sticky works here because .afpf-layout already sets
+ * align-items:flex-start — flex children stretched to equal height
+ * can never stick. Appended last so it beats the drawer-reset's
+ * position:static at equal specificity. (Logged-in admin bar adds
+ * 32px on top of the header; visitors are the audience that counts.)
+ * ================================================================== */
+@media (min-width: 768px) {
+	.afpf-panel {
+		max-height: calc(100vh - 132px);
+		overflow-y: auto;
+		position: sticky;
+		top: 116px;
+		z-index: 1;
+	}
+}

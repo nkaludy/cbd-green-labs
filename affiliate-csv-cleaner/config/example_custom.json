@@ -1,0 +1,50 @@
+{
+  "_comment": "EXAMPLE config for a different affiliate network. Copy this file, rename it (e.g. shareasale_toys.json), change the left-hand column names to match that network's CSV headers, and adjust patterns/toggles. The right-hand values should stay the same — they are the field names the WordPress importer expects.",
+  "network": "ExampleNetwork",
+
+  "column_mapping": {
+    "product_link": "affiliate_url",
+    "title": "post_title",
+    "product_id": "aw_product_id",
+    "sku": "sku",
+    "image_link": "merchant_image_url",
+    "large_image": "main_image",
+    "long_description": "features",
+    "category": "category",
+    "retail_price": "price",
+    "merchant_link": "merchant_url"
+  },
+
+  "duplicate_field": "sku",
+  "description_field": "features",
+  "max_gallery_images": 6,
+
+  "steps": {
+    "remove_empty_rows": true,
+    "trim_whitespace": true,
+    "fix_encoding": true,
+    "clean_descriptions": true,
+    "remove_duplicates": false,
+    "extract_fields": true,
+    "extract_images": false,
+    "seo_enrich": true
+  },
+
+  "extraction": {
+    "brand_pattern": "^([A-Z][\\w&.\\- ]*?)\\s+[-–]",
+    "scale_pattern": "\\b1[/:](12|18|24|32|43|64)\\b",
+    "year_pattern": "\\b(19\\d{2}|20[0-2]\\d|2030)\\b"
+  },
+
+  "seo": {
+    "opening_template": "Meet the {title} — a collector-grade model with real attention to detail.",
+    "closing_template": "The {title} is ready to join your display shelf."
+  },
+
+  "tracking_params": [
+    "utm_*",
+    "sscid",
+    "afftrack",
+    "ref"
+  ]
+}

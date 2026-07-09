@@ -1,0 +1,119 @@
+/**
+ * [DOC-011] Styles for the affiliate_product single template.
+ *
+ * Loaded from functions.php (see [DOC-002]) as its own stylesheet,
+ * separate from style.css, so all product-page-specific CSS lives in
+ * one obvious place rather than being mixed into the theme's
+ * metadata file.
+ *
+ * Class names below match the markup in single-affiliate_product.php
+ * (see [DOC-009]) 1:1 — e.g. .affiliate-product__buy-now targets the
+ * anchor tag documented in [DOC-010].
+ */
+
+/* Two-column layout: media on the left, details/CTA on the right. */
+.affiliate-product__body {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2rem;
+	margin-top: 1.5rem;
+}
+
+.affiliate-product__media,
+.affiliate-product__details {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.affiliate-product__main-image {
+	width: 100%;
+	height: auto;
+	border-radius: 6px;
+}
+
+.affiliate-product__gallery {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.affiliate-product__gallery-image {
+	width: 80px;
+	height: 80px;
+	object-fit: cover;
+	border-radius: 4px;
+}
+
+.affiliate-product__meta {
+	color: #666;
+	font-size: 0.95rem;
+}
+
+.affiliate-product__meta span {
+	margin-right: 1rem;
+}
+
+.affiliate-product__price {
+	font-size: 1.75rem;
+	font-weight: 700;
+	margin: 0 0 1rem;
+}
+
+/**
+ * [DOC-011] The "Buy Now" call-to-action button.
+ *
+ * This is the highest-priority element on the page — the whole point
+ * of the affiliate_product post type is to drive this click — so it
+ * is styled large, bold, and high-contrast on purpose:
+ *
+ *   - display: inline-block + generous padding gives it a big,
+ *     easy-to-hit click/tap target (important for mobile SEO/UX
+ *     signals as well as conversion).
+ *   - font-size 1.25rem + font-weight 700 make the label impossible
+ *     to miss next to the surrounding body text.
+ *   - A solid, saturated background color (rather than an outline/
+ *     ghost button style) visually separates it from ordinary text
+ *     links, reinforcing that this is the primary action on the page.
+ *   - The :hover/:focus state darkens the background and adds a
+ *     visible focus outline so keyboard users get the same clear
+ *     affordance as mouse users.
+ */
+.affiliate-product__buy-now {
+	display: inline-block;
+	padding: 1rem 2.5rem;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.2;
+	color: #ffffff;
+	background-color: #e0642c;
+	border-radius: 6px;
+	text-decoration: none;
+	text-align: center;
+	white-space: nowrap;
+}
+
+.affiliate-product__buy-now:hover,
+.affiliate-product__buy-now:focus {
+	background-color: #c2501f;
+	color: #ffffff;
+}
+
+.affiliate-product__buy-now:focus-visible {
+	outline: 3px solid #1a1a1a;
+	outline-offset: 2px;
+}
+
+.affiliate-product__disclosure {
+	margin-top: 0.75rem;
+	font-size: 0.85rem;
+	color: #777;
+}
+
+.affiliate-product__features {
+	margin-top: 1.5rem;
+}
+
+.affiliate-product__description {
+	margin-top: 1.5rem;
+}

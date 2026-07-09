@@ -1,0 +1,1936 @@
+/*
+ * [DOC-001] Child theme stylesheet header.
+ *
+ * WordPress requires every theme (parent or child) to expose a style.css
+ * file with a comment header like this one. WordPress reads these fields
+ * to populate the Appearance > Themes screen and, critically, the
+ * "Template:" line below is what tells WordPress this is a CHILD THEME
+ * of Astra rather than a standalone theme. Without that line, WordPress
+ * would treat this folder as an unrelated theme with no access to
+ * Astra's templates, hooks, or functions.
+ *
+ * As of Phase 9 this file carries the site-wide design system (see
+ * [DOC-155] below); the older assets/css/affiliate-master.css keeps the
+ * original single-product rules and loads BEFORE this file, so anything
+ * both files touch resolves to the Phase 9 design.
+ *
+Theme Name:   Affiliate Master
+Theme URI:    https://example.com/affiliate-master
+Description:  A lightweight Astra child theme purpose-built for affiliate product review sites. Adds the "affiliate_product" custom post type, matching ACF fields, a single-product template with a compliant "Buy Now" affiliate call-to-action, and the full catalog design system.
+Author:       Affiliate Master
+Author URI:   https://example.com
+Template:     astra
+Version:      1.4.6
+License:      GNU General Public License v2 or later
+License URI:  http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain:  affiliate-master
+*/
+
+/*
+ * [DOC-155] Design tokens + global rules.
+ *
+ * NOTE ON THE PARENT STYLESHEET: Astra's CSS is NOT @import-ed here.
+ * @import blocks parallel download (the browser can't fetch the child
+ * sheet until the parent arrives) and WordPress best practice is to
+ * enqueue with a dependency instead — functions.php loads
+ * 'astra-parent-style' first and declares this file dependent on it
+ * ([DOC-002]), which achieves the same ordering without the
+ * performance penalty.
+ *
+ * All colors live in custom properties on :root so a niche clone can
+ * re-skin the entire site by overriding seven variables. The values
+ * mirror the palette configured in the Astra Customizer and the
+ * filter plugin's --afpf-* variables so every surface agrees.
+ */
+
+:root {
+	--am-primary: #1a2e1a;      /* British Racing Green */
+	--am-primary-dark: #0d1a0d; /* Hover/darkened state  */
+	--am-gold: #d4a017;         /* Accent                */
+	--am-text: #333333;
+	--am-body: #444444;
+	--am-muted: #888888;
+	--am-bg: #ffffff;
+
+	/* [DOC-189] Design C warm palette: soft surfaces moved from cool
+	   greys to warm creams; cards rounder (8 -> 12); serif voice for
+	   headings. Cool values kept in comments for archaeology. */
+	--am-bg-page: #faf9f6;      /* body background            */
+	--am-bg-soft: #f5f3ee;      /* was #f8f8f8                */
+	--am-bg-cream: #f8f5ee;     /* warm cream (image surfaces reverted to white, [DOC-191]) */
+	--am-border: #e0e0e0;
+	--am-border-warm: #eeebe4;  /* card borders, was #e8e8e8  */
+	--am-radius: 4px;
+	--am-radius-lg: 12px;       /* was 8px                    */
+	--am-font-serif: Georgia, "Times New Roman", serif;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+/* Respect vestibular-disorder settings: no smooth scroll, no motion. */
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* Accessibility: one consistent, visible focus ring site-wide. */
+:focus-visible {
+	outline: 2px solid var(--am-gold);
+	outline-offset: 2px;
+}
+
+/*
+ * Link colors intentionally NOT set globally: Astra's Customizer
+ * global colors own generic links, so per-site link tweaks stay a
+ * Customizer job. Only clearly-scoped components below set their own
+ * link colors.
+ */
+
+/* ==================================================================
+ * [DOC-156] Buttons + utility classes.
+ *
+ * .btn-primary / .btn-outline are the two site-wide button voices;
+ * everything clickable that isn't a plain link should be one of
+ * them. The badge and disclosure utilities mirror the classes the
+ * filter plugin and product template already use, so hand-written
+ * page content can match the generated UI.
+ * ================================================================== */
+
+.btn-primary,
+.btn-outline {
+	border-radius: var(--am-radius);
+	cursor: pointer;
+	display: inline-block;
+	font-size: 15px;
+	font-weight: 600;
+	padding: 12px 24px;
+	text-align: center;
+	text-decoration: none;
+	transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-primary {
+	background: var(--am-primary);
+	border: 1px solid var(--am-primary);
+	color: var(--am-gold);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+	background: var(--am-primary-dark);
+	border-color: var(--am-primary-dark);
+	color: var(--am-gold);
+}
+
+.btn-outline {
+	background: transparent;
+	border: 1px solid var(--am-primary);
+	color: var(--am-primary);
+}
+
+.btn-outline:hover,
+.btn-outline:focus {
+	background: var(--am-primary);
+	color: var(--am-gold);
+}
+
+.badge-brand,
+.badge-scale {
+	border-radius: 20px;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	padding: 4px 12px;
+}
+
+.badge-brand {
+	background: var(--am-primary);
+	color: var(--am-gold);
+}
+
+.badge-scale {
+	background: #f0f0f0;
+	border: 1px solid #dddddd;
+	color: #555555;
+	padding: 4px 10px;
+}
+
+.affiliate-disclosure {
+	color: #999999;
+	font-size: 12px;
+	font-style: italic;
+}
+
+.section-heading {
+	color: var(--am-primary);
+	font-size: 28px;
+	margin-bottom: 8px;
+	text-align: center;
+}
+
+.section-heading::after {
+	background: var(--am-gold);
+	content: "";
+	display: block;
+	height: 3px;
+	margin: 12px auto 0;
+	width: 60px;
+}
+
+/* ==================================================================
+ * [DOC-157] Single affiliate product page.
+ *
+ * Selectors match the BEM classes in single-affiliate_product.php.
+ * These rules intentionally repeat (and refine) some of the older
+ * assets/css/affiliate-master.css declarations — this file loads
+ * last ([DOC-002]), so the Phase 9 values win without editing the
+ * legacy file.
+ * ================================================================== */
+
+.affiliate-product__body {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 40px;
+}
+
+/* Image left 45%, details right taking the rest, 40px gap. */
+.affiliate-product__media {
+	flex: 1 1 45%;
+	max-width: 45%;
+}
+
+.affiliate-product__details {
+	/* [DOC-189] thin gold accent tops the buy column — the eye lands
+	   on price/CTA first, and the line marks that territory. */
+	border-top: 2px solid var(--am-gold);
+	flex: 1 1 50%;
+	min-width: 0;
+	padding-top: 20px;
+}
+
+.affiliate-product__main-image {
+	background: #ffffff; /* [DOC-191] white behind product photos; cream tinted them */
+	border-radius: var(--am-radius-lg);
+	display: block;
+	max-height: 420px;
+	object-fit: contain;
+	padding: 20px;
+	width: 100%;
+}
+
+.affiliate-product__title {
+	color: var(--am-primary);
+	font-size: 28px;
+	line-height: 1.3;
+	margin-bottom: 12px;
+}
+
+.affiliate-product__brand {
+	background: var(--am-primary);
+	border-radius: 20px;
+	color: var(--am-gold);
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	margin-bottom: 8px;
+	padding: 4px 12px;
+}
+
+.affiliate-product__scale {
+	background: #f0f0f0;
+	border: 1px solid #dddddd;
+	border-radius: 20px;
+	color: #555555;
+	display: inline-block;
+	font-size: 12px;
+	margin-bottom: 8px;
+	margin-left: 6px;
+	padding: 4px 10px;
+}
+
+.affiliate-product__price {
+	color: var(--am-primary);
+	font-size: 32px;
+	font-weight: 700;
+	margin: 16px 0;
+}
+
+.affiliate-product__features ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.affiliate-product__features li {
+	border-bottom: 1px solid #f0f0f0;
+	padding: 8px 0 8px 20px;
+	position: relative;
+}
+
+/* Gold check bullet — decorative, so it lives in CSS not markup. */
+.affiliate-product__features li::before {
+	color: var(--am-gold);
+	content: "\2713";
+	left: 0;
+	position: absolute;
+}
+
+.affiliate-product__buy-now {
+	background: var(--am-primary);
+	border: none;
+	border-radius: var(--am-radius);
+	color: var(--am-gold);
+	cursor: pointer;
+	display: block;
+	font-size: 16px;
+	font-weight: 600;
+	margin-top: 20px;
+	padding: 16px 24px;
+	text-align: center;
+	text-decoration: none;
+	transition: background 0.2s ease;
+	width: 100%;
+}
+
+.affiliate-product__buy-now:hover,
+.affiliate-product__buy-now:focus {
+	background: var(--am-primary-dark);
+	color: var(--am-gold);
+}
+
+.affiliate-product__disclosure {
+	color: #999999;
+	font-size: 12px;
+	font-style: italic;
+	margin-top: 12px;
+}
+
+/* Related products heading (section arrives in a later phase; the
+   class is styled now so it drops in ready-made). */
+.affiliate-product__related-title,
+.related-products h2 {
+	border-left: 4px solid var(--am-gold);
+	margin: 40px 0 20px;
+	padding-left: 12px;
+}
+
+/* ==================================================================
+ * [DOC-158] Blog single post.
+ *
+ * Targets Astra's own entry markup (body.single-post scope) so no
+ * template override is needed for ordinary posts — Astra renders,
+ * this skins.
+ * ================================================================== */
+
+/*
+ * [DOC-204] Single posts match the homepage content width (1200px).
+ *
+ * The REAL constraint was never a theme rule: single posts run
+ * Astra's narrow-container mode, which caps .ast-container at 750px
+ * (--ast-content-width-size). The old ".single-post .site-main
+ * article { max-width: 820px }" rule here was dead code — this
+ * markup has no .site-main class, so 820px never applied (verified
+ * by computed-style probe). Overriding the container cap is the fix;
+ * the article simply fills it. Scoped by body.single-post so
+ * archives, products and pages keep their own widths; max-width
+ * stays responsive on small screens.
+ */
+body.single-post.ast-narrow-container .site-content .ast-container,
+body.single-post #content > .ast-container {
+	max-width: 1200px;
+}
+
+.single-post .post-thumb img,
+.single-post .ast-single-post-featured-section img {
+	border-radius: var(--am-radius-lg);
+	height: 360px;
+	margin-bottom: 32px;
+	object-fit: cover;
+	width: 100%;
+}
+
+.single-post h1.entry-title {
+	color: var(--am-primary);
+	font-size: 36px;
+	line-height: 1.3;
+	margin-bottom: 16px;
+}
+
+.single-post .entry-meta {
+	border-bottom: 1px solid var(--am-border);
+	color: var(--am-muted);
+	font-size: 13px;
+	margin-bottom: 32px;
+	padding-bottom: 20px;
+}
+
+.single-post .entry-content p {
+	color: var(--am-body);
+	font-size: 16px;
+	line-height: 1.8;
+	margin-bottom: 24px;
+}
+
+.single-post .entry-content h2 {
+	border-left: 4px solid var(--am-gold);
+	color: var(--am-primary);
+	font-size: 24px;
+	margin: 40px 0 16px;
+	padding-left: 16px;
+}
+
+.single-post .entry-content h3 {
+	color: var(--am-primary);
+	font-size: 20px;
+	margin: 28px 0 12px;
+}
+
+.single-post .entry-content a {
+	color: var(--am-primary);
+	text-decoration: underline;
+}
+
+.single-post .entry-content a:hover {
+	color: var(--am-gold);
+}
+
+.single-post .entry-content blockquote {
+	background: var(--am-bg-soft);
+	border-left: 4px solid var(--am-gold);
+	color: #555555;
+	font-style: italic;
+	margin: 32px 0;
+	padding: 20px 24px;
+}
+
+/*
+ * In-post product showcase: wrap an [affiliate_filter] (or future
+ * product shortcode) in <div class="post-product-section"> inside a
+ * post and it gets the full-bleed grey band. The negative margins
+ * cancel the article's 20px padding so the band spans edge to edge.
+ */
+.single-post .entry-content .post-product-section {
+	background: var(--am-bg-soft);
+	margin: 40px -20px;
+	padding: 40px 20px;
+}
+
+/* ==================================================================
+ * [DOC-159] Blog archive / category / tag listings.
+ *
+ * Scoped to post archives only — the affiliate_product archive and
+ * the filter plugin's /catalog/ page have their own layouts, and the
+ * body-class scoping here (.blog, .category, .tag, .author, .date)
+ * can never leak onto them.
+ * ================================================================== */
+
+.blog .page-title,
+.archive .page-title {
+	color: var(--am-primary);
+	font-size: 32px;
+	margin-bottom: 8px;
+}
+
+.blog .archive-description,
+.archive .archive-description,
+.archive .taxonomy-description {
+	color: #666666;
+	font-size: 16px;
+	margin-bottom: 32px;
+}
+
+.blog .site-main,
+.category .site-main,
+.tag .site-main,
+.author .site-main,
+.date .site-main {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Non-card children (headers, pagination) span the full row. */
+.blog .site-main > *:not(article),
+.category .site-main > *:not(article),
+.tag .site-main > *:not(article),
+.author .site-main > *:not(article),
+.date .site-main > *:not(article) {
+	grid-column: 1 / -1;
+}
+
+.blog .site-main article,
+.category .site-main article,
+.tag .site-main article,
+.author .site-main article,
+.date .site-main article {
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-warm);
+	border-radius: var(--am-radius-lg);
+	margin: 0;
+	overflow: hidden;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+@media (hover: hover) {
+	.blog .site-main article:hover,
+	.category .site-main article:hover,
+	.tag .site-main article:hover,
+	.author .site-main article:hover,
+	.date .site-main article:hover {
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+		transform: translateY(-4px);
+	}
+}
+
+.blog .site-main article .post-thumb img,
+.archive .site-main article .post-thumb img {
+	height: 200px;
+	object-fit: cover;
+	width: 100%;
+}
+
+.blog .site-main article .post-content,
+.archive .site-main article .post-content {
+	padding: 20px;
+}
+
+.blog .site-main article .entry-title,
+.archive .site-main article .entry-title {
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.4;
+	margin-bottom: 8px;
+}
+
+.blog .site-main article .entry-title a,
+.archive .site-main article .entry-title a {
+	color: var(--am-primary);
+	text-decoration: none;
+}
+
+.blog .site-main article .ast-excerpt-container,
+.archive .site-main article .ast-excerpt-container,
+.blog .site-main article .post-content p,
+.archive .site-main article .post-content p {
+	color: #666666;
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 16px;
+}
+
+.blog .site-main article .ast-the-content-more-link,
+.archive .site-main article .ast-the-content-more-link {
+	color: var(--am-gold);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.blog .site-main article .ast-the-content-more-link:hover,
+.archive .site-main article .ast-the-content-more-link:hover {
+	text-decoration: underline;
+}
+
+/* ==================================================================
+ * [DOC-160] Header.
+ *
+ * Astra renders the header (header builder markup); these rules skin
+ * it. Both the current builder classes (.ast-primary-header-bar) and
+ * the legacy bar (.main-header-bar) are targeted so the skin holds
+ * whichever header mode a clone's Customizer ends up in.
+ * ================================================================== */
+
+.site-header {
+	border-top: 3px solid var(--am-gold);
+	/* Sticky-on-scroll: position:sticky needs no JS; the shadow reads
+	   as elevation once content slides underneath. */
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); /* [DOC-189] */
+	position: sticky;
+	top: 0;
+	z-index: 999;
+}
+
+/* Keep the sticky header below the admin bar for logged-in users. */
+.admin-bar .site-header {
+	top: 32px;
+}
+
+.site-header,
+.ast-primary-header-bar,
+.main-header-bar {
+	background: var(--am-primary);
+}
+
+.site-header .site-branding,
+.site-header .ast-site-identity {
+	padding: 16px 0;
+}
+
+.site-header .site-title a,
+.site-header .site-description {
+	color: #ffffff;
+}
+
+.site-header .site-title a:hover {
+	color: var(--am-gold);
+}
+
+.site-header .main-header-menu .menu-link,
+.site-header .main-navigation a {
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: 0.03em;
+	padding: 8px 16px;
+	transition: color 0.2s ease;
+}
+
+/*
+ * [DOC-186] Hover stays WHITE with an underline; gold is reserved
+ * for the current-page indicator so "where I am" never looks like
+ * "what I'm pointing at".
+ *
+ * THE SPECIFICITY ARMS RACE IS THE POINT OF THESE LONG SELECTORS:
+ * Astra's Customizer prints an inline rule after this stylesheet —
+ * ".ast-builder-menu-1 .main-header-menu > .menu-item:hover >
+ * .menu-link { color: var(--ast-global-color-1) }" — and global
+ * color 1 is #1a2e1a, the SAME GREEN as the header bar, so hovered
+ * links literally vanished. That rule weighs 5 classes and loads
+ * last; a 4-class selector here loses every time. The first selector
+ * in each group weighs 6, which beats Astra's 5 regardless of load
+ * order. The shorter fallbacks keep non-builder header modes covered.
+ *
+ * The current-page group sits LATER at the same 6-class weight, so
+ * the active item keeps its gold even mid-hover — the ordering of
+ * these two blocks is load-bearing; don't reshuffle.
+ */
+.site-header .ast-builder-menu-1 .main-header-menu > .menu-item:hover > .menu-link,
+.site-header .main-header-menu .menu-item:hover > .menu-link,
+.site-header .main-header-menu .menu-link:hover,
+.site-header .main-navigation a:hover {
+	color: #ffffff;
+	text-decoration: underline;
+}
+
+.site-header .ast-builder-menu-1 .main-header-menu > .current-menu-item > .menu-link,
+.site-header .ast-builder-menu-1 .main-header-menu > .current_page_item > .menu-link,
+.site-header .main-header-menu .current-menu-item > .menu-link,
+.site-header .main-header-menu .current_page_item > .menu-link {
+	color: var(--am-gold);
+}
+
+/* Astra's hamburger + mobile drawer trigger must stay visible on the
+   green bar; the drawer behaviour itself is Astra's, untouched. */
+.site-header .menu-toggle,
+.site-header .ast-mobile-menu-trigger-minimal,
+.site-header .ast-mobile-menu-trigger-fill,
+.site-header .mobile-menu-toggle {
+	color: #ffffff;
+}
+
+/* ==================================================================
+ * [DOC-161] Footer (markup in footer.php, classes am-footer-*).
+ * ================================================================== */
+
+.am-footer {
+	background: var(--am-primary);
+	border-top: 3px solid var(--am-gold);
+	color: rgba(255, 255, 255, 0.8);
+	padding: 48px 0 24px;
+}
+
+.am-footer .ast-container {
+	margin: 0 auto;
+	max-width: 1200px;
+	padding: 0 20px;
+}
+
+.am-footer-widgets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 40px;
+	justify-content: space-between;
+}
+
+.am-footer-col {
+	flex: 1 1 220px;
+}
+
+.am-footer h2,
+.am-footer h3,
+.am-footer .widget-title {
+	color: var(--am-gold);
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	margin-bottom: 16px;
+	text-transform: uppercase;
+}
+
+.am-footer a {
+	color: rgba(255, 255, 255, 0.75); /* [DOC-189] */
+	text-decoration: none;
+	transition: color 0.2s ease;
+}
+
+.am-footer a:hover {
+	color: var(--am-gold);
+}
+
+.am-footer-menu ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.am-footer-menu li {
+	padding: 4px 0;
+}
+
+.am-footer-copyright {
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 13px;
+	margin-top: 40px;
+	padding-top: 24px;
+	text-align: center;
+}
+
+.am-footer-disclosure {
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.5);
+	font-size: 12px;
+	margin-top: 16px;
+	padding-top: 16px;
+	text-align: center;
+}
+
+/* ==================================================================
+ * [DOC-162] Homepage building blocks (classes ready now for the
+ * future homepage build — usable from block/page content).
+ * ================================================================== */
+
+.home-hero {
+	background: var(--am-primary);
+	color: #ffffff;
+	padding: 80px 0;
+	text-align: center;
+}
+
+.home-hero h1 {
+	color: #ffffff;
+	font-size: 48px;
+	margin-bottom: 12px;
+}
+
+.home-hero .home-hero-sub {
+	font-size: 20px;
+	opacity: 0.8;
+}
+
+.home-hero .btn-primary {
+	background: var(--am-gold);
+	border-color: var(--am-gold);
+	color: var(--am-primary);
+	margin-top: 24px;
+}
+
+.home-hero .btn-primary:hover {
+	background: #b8890f;
+	border-color: #b8890f;
+}
+
+.category-card {
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-warm);
+	border-radius: var(--am-radius-lg);
+	padding: 32px 20px;
+	text-align: center;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.category-card:hover {
+	border-color: var(--am-gold);
+}
+
+/* ==================================================================
+ * [DOC-163] Responsive breakpoints.
+ *
+ * The spec's three tiers: <=480 mobile, <=768 tablet-down,
+ * >=1024 desktop-up. Blog grid collapses 3 -> 2 -> 1; the product
+ * two-column layout stacks under 768.
+ * ================================================================== */
+
+@media (max-width: 1023px) {
+	.blog .site-main,
+	.category .site-main,
+	.tag .site-main,
+	.author .site-main,
+	.date .site-main {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.affiliate-product__body {
+		gap: 24px;
+	}
+
+	.affiliate-product__media,
+	.affiliate-product__details {
+		flex-basis: 100%;
+		max-width: 100%;
+	}
+
+	.single-post h1.entry-title {
+		font-size: 28px;
+	}
+
+	.home-hero h1 {
+		font-size: 34px;
+	}
+
+	.am-footer-widgets {
+		gap: 24px;
+	}
+}
+
+@media (max-width: 480px) {
+	.blog .site-main,
+	.category .site-main,
+	.tag .site-main,
+	.author .site-main,
+	.date .site-main {
+		grid-template-columns: 1fr;
+	}
+
+	.affiliate-product__title {
+		font-size: 24px;
+	}
+
+	.affiliate-product__price {
+		font-size: 26px;
+	}
+
+	.single-post .post-thumb img,
+	.single-post .ast-single-post-featured-section img {
+		height: 220px;
+	}
+}
+
+/* ==================================================================
+ * [DOC-179] Phase 10: content page components.
+ *
+ * Everything the Phase 10 templates introduce: the author bio box and
+ * related grid on single.php ([DOC-173]), the shared page container +
+ * .am-prose typography used by the About/Contact/Resources templates
+ * ([DOC-176]-[DOC-178]), the contact two-column layout, and the
+ * resource cards (whose markup lives in page CONTENT — the classes
+ * are public API for editors, so renaming them is a breaking change).
+ * Self-contained section with its own breakpoints so it can be
+ * lifted or diffed as one unit.
+ * ================================================================== */
+
+/* --- Shared page shell (About / Contact / Resources) ------------- */
+
+.am-page__container {
+	margin: 0 auto;
+	max-width: 1100px;
+	padding: 0 20px 40px;
+}
+
+/* About is a pure reading page: narrower measure than the utility
+   pages, a touch wider than the 820px blog column ([DOC-176]). */
+.am-page__container--about {
+	max-width: 900px;
+}
+
+.am-page__title {
+	color: var(--am-primary);
+	font-size: 36px;
+	line-height: 1.3;
+	margin: 8px 0 24px;
+}
+
+/* --- .am-prose: the blog article voice, reusable ------------------ */
+
+.am-prose p {
+	color: var(--am-body);
+	font-size: 16px;
+	line-height: 1.8;
+	margin-bottom: 24px;
+}
+
+.am-prose h2 {
+	border-left: 4px solid var(--am-gold);
+	color: var(--am-primary);
+	font-size: 24px;
+	margin: 40px 0 16px;
+	padding-left: 16px;
+}
+
+.am-prose h3 {
+	color: var(--am-primary);
+	font-size: 20px;
+	margin: 28px 0 12px;
+}
+
+.am-prose a {
+	color: var(--am-primary);
+	text-decoration: underline;
+}
+
+.am-prose a:hover {
+	color: var(--am-gold);
+}
+
+.am-prose ul,
+.am-prose ol {
+	color: var(--am-body);
+	font-size: 16px;
+	line-height: 1.8;
+	margin: 0 0 24px 20px;
+}
+
+/* --- Author bio box (single.php, [DOC-174]) ----------------------- */
+
+.am-author-box {
+	align-items: center;
+	background: var(--am-primary);
+	border-radius: var(--am-radius-lg);
+	display: flex;
+	gap: 20px;
+	margin-top: 48px;
+	padding: 24px;
+}
+
+.am-author-box__avatar img {
+	border-radius: 50%;
+	display: block;
+	height: 72px;
+	width: 72px;
+}
+
+.am-author-box__label {
+	color: var(--am-gold);
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	margin: 0 0 2px;
+	opacity: 0.8;
+	text-transform: uppercase;
+}
+
+.am-author-box__name {
+	border: none;
+	color: var(--am-gold);
+	font-size: 18px;
+	margin: 0 0 6px;
+	padding: 0;
+}
+
+.am-author-box__bio {
+	color: var(--am-gold);
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 0;
+	opacity: 0.85;
+}
+
+/* --- Related posts grid (single.php, [DOC-175]) -------------------- */
+
+/* Matches the 820px article column above it; the section sits as a
+   sibling of <article>, so it carries its own centering. */
+.am-related {
+	margin: 48px auto 0;
+	/* [DOC-204] Tracks the article width above it (was 820px) — the
+	   related grid sits directly below the post and must stay flush
+	   with the article's edges. */
+	max-width: 1200px;
+	padding: 0 20px 40px;
+}
+
+.am-related__title {
+	border-left: 4px solid var(--am-gold);
+	color: var(--am-primary);
+	font-size: 24px;
+	margin-bottom: 20px;
+	padding-left: 16px;
+}
+
+.am-related__grid {
+	display: grid;
+	gap: 20px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.am-related__card {
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-warm);
+	border-radius: var(--am-radius-lg);
+	overflow: hidden;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+@media (hover: hover) {
+	.am-related__card:hover {
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+		transform: translateY(-4px);
+	}
+}
+
+.am-related__link {
+	color: inherit;
+	display: block;
+	text-decoration: none;
+}
+
+.am-related__thumb img {
+	display: block;
+	height: 140px;
+	object-fit: cover;
+	width: 100%;
+}
+
+.am-related__body {
+	padding: 14px 16px 16px;
+}
+
+.am-related__card-title {
+	color: var(--am-primary);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+	margin: 0 0 6px;
+}
+
+.am-related__date {
+	color: var(--am-muted);
+	font-size: 12px;
+}
+
+/* --- Contact page two-column layout ([DOC-177]) -------------------- */
+
+.am-contact {
+	display: grid;
+	gap: 40px;
+	grid-template-columns: 3fr 2fr;
+}
+
+.am-contact__heading {
+	color: var(--am-primary);
+	font-size: 20px;
+	margin-bottom: 16px;
+}
+
+.am-contact__text {
+	color: var(--am-body);
+	font-size: 15px;
+	line-height: 1.7;
+}
+
+.am-contact__email a {
+	color: var(--am-primary);
+	font-size: 16px;
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.am-contact__email a:hover {
+	color: var(--am-gold);
+}
+
+.am-contact__info {
+	background: var(--am-bg-soft);
+	border-radius: var(--am-radius-lg);
+	height: fit-content;
+	padding: 24px;
+}
+
+.am-contact__form-note {
+	background: var(--am-bg-soft);
+	border-left: 4px solid var(--am-gold);
+	color: #666666;
+	font-size: 14px;
+	padding: 16px 20px;
+}
+
+/* --- Resource cards (markup lives in page content, [DOC-178]) ------ */
+
+.am-resource-cards {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin: 24px 0 40px;
+}
+
+.am-resource-card {
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-warm);
+	border-radius: var(--am-radius-lg);
+	padding: 24px;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.am-resource-card:hover {
+	border-color: var(--am-gold);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.am-resource-card h3 {
+	color: var(--am-primary);
+	font-size: 18px;
+	margin: 0 0 10px;
+}
+
+.am-resource-card p {
+	color: #666666;
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 14px;
+}
+
+.am-resource-card a {
+	color: var(--am-primary);
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.am-resource-card a:hover {
+	color: var(--am-gold);
+}
+
+/* --- Phase 10 breakpoints ------------------------------------------ */
+
+@media (max-width: 768px) {
+	.am-contact {
+		grid-template-columns: 1fr;
+	}
+
+	.am-related__grid,
+	.am-resource-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.am-page__title {
+		font-size: 28px;
+	}
+}
+
+@media (max-width: 480px) {
+	.am-related__grid,
+	.am-resource-cards {
+		grid-template-columns: 1fr;
+	}
+
+	.am-author-box {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+
+/* === HOMEPAGE ======================================================
+ * [DOC-182] Phase 11: front-page.php bands and components.
+ *
+ * .am-band is the load-bearing trick: the child header.php boxes all
+ * content inside Astra's .ast-container ([DOC-168]), so each homepage
+ * band breaks out to the full viewport with the calc(50% - 50vw)
+ * negative-margin pattern, then re-centers its own content with
+ * .am-container. The overflow-x clip on the homepage's #content
+ * guards against the ~15px horizontal scroll 100vw can cause on
+ * always-visible-scrollbar platforms.
+ *
+ * DOC-162's .home-hero/.category-card predate this build and remain
+ * for content-authored blocks; the real homepage uses the am-*
+ * components below.
+ * ================================================================== */
+
+.home #content {
+	overflow-x: clip;
+}
+
+.am-band {
+	margin-left: calc(50% - 50vw);
+	margin-right: calc(50% - 50vw);
+}
+
+.am-container {
+	margin: 0 auto;
+	max-width: 1200px;
+	padding: 0 20px;
+}
+
+.am-section-heading {
+	color: var(--am-primary);
+	font-size: 28px;
+	margin-bottom: 32px;
+	text-align: center;
+}
+
+.am-section-heading::after {
+	background: var(--am-gold);
+	content: "";
+	display: block;
+	height: 3px;
+	margin: 12px auto 0;
+	width: 60px;
+}
+
+/* --- Homepage buttons ---------------------------------------------- */
+
+.am-btn-primary {
+	background: var(--am-gold);
+	border: none;
+	border-radius: var(--am-radius);
+	color: var(--am-primary);
+	cursor: pointer;
+	display: inline-block;
+	font-size: 15px;
+	font-weight: 600;
+	padding: 14px 32px;
+	text-decoration: none;
+	transition: background 0.2s ease;
+}
+
+.am-btn-primary:hover,
+.am-btn-primary:focus {
+	background: #b8890f;
+	color: var(--am-primary);
+}
+
+.am-btn-outline,
+.am-btn-outline-white {
+	background: transparent;
+	border-radius: var(--am-radius);
+	display: inline-block;
+	font-size: 15px;
+	font-weight: 600;
+	padding: 12px 30px;
+	text-decoration: none;
+	transition: background 0.2s ease, color 0.2s ease;
+}
+
+.am-btn-outline {
+	border: 2px solid var(--am-primary);
+	color: var(--am-primary);
+}
+
+.am-btn-outline:hover,
+.am-btn-outline:focus {
+	background: var(--am-primary);
+	color: var(--am-gold);
+}
+
+.am-btn-outline-white {
+	border: 2px solid #ffffff;
+	color: #ffffff;
+}
+
+.am-btn-outline-white:hover,
+.am-btn-outline-white:focus {
+	background: #ffffff;
+	color: var(--am-primary);
+}
+
+/* --- Section 1: hero — see the HERO C block ([DOC-187]) at the end
+   of this file; the original Phase 11 hero rules lived here. -------- */
+
+/* --- Section 2: category boxes ([DOC-193] compact 8-up row) ---------
+   Replaced the Phase 11 three-column large cards: with eight
+   categories, big cards pushed the products below the fold — the
+   row is navigation, not content, so it earns one compact strip. */
+
+.am-categories {
+	padding: 60px 0;
+}
+
+.am-categories-grid {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.am-category-card {
+	align-items: center;
+	background: #ffffff;
+	border: 1px solid var(--am-border-warm);
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 16px 8px;
+	text-align: center;
+	text-decoration: none;
+	transition: all 0.2s;
+}
+
+.am-category-card:hover,
+.am-category-card:focus {
+	border-color: var(--am-gold);
+	box-shadow: 0 4px 12px rgba(212, 160, 23, 0.12);
+	transform: translateY(-2px);
+}
+
+.am-category-icon {
+	font-size: 28px;
+	line-height: 1;
+}
+
+.am-category-name {
+	color: var(--am-primary);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+/* --- Section 3: scale pills ------------------------------------------ */
+
+.am-scales {
+	background: var(--am-bg-soft);
+	padding: 40px 0;
+}
+
+.am-scales__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	justify-content: center;
+}
+
+.am-scale-pill {
+	background: var(--am-primary);
+	border-radius: 30px;
+	color: var(--am-gold);
+	display: inline-block;
+	font-weight: 600;
+	letter-spacing: 0.03em; /* [DOC-189] */
+	padding: 10px 24px;
+	text-decoration: none;
+	transition: background 0.2s ease, color 0.2s ease;
+}
+
+.am-scale-pill:hover,
+.am-scale-pill:focus {
+	background: var(--am-gold);
+	color: var(--am-primary);
+}
+
+/* --- Sections 4 + 5: featured products / guides ----------------------- */
+
+.am-featured-products {
+	padding: 60px 0;
+}
+
+.am-view-all {
+	margin-top: 36px;
+	text-align: center;
+}
+
+.am-blog-posts {
+	background: var(--am-bg-soft);
+	padding: 60px 0;
+}
+
+.am-blog-posts__grid {
+	display: grid;
+	gap: 24px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.am-blog-card {
+	background: var(--am-bg);
+	border-radius: var(--am-radius-lg);
+	overflow: hidden;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+@media (hover: hover) {
+	.am-blog-card:hover {
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+		transform: translateY(-4px);
+	}
+}
+
+.am-blog-card__link {
+	color: inherit;
+	display: block;
+	text-decoration: none;
+}
+
+.am-blog-card__thumb img {
+	display: block;
+	height: 200px;
+	object-fit: cover;
+	width: 100%;
+}
+
+.am-blog-card__body {
+	padding: 20px;
+}
+
+.am-blog-card__title {
+	color: var(--am-primary);
+	font-size: 18px;
+	line-height: 1.4;
+	margin: 0 0 10px;
+}
+
+.am-blog-card__excerpt {
+	color: #666666;
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 12px;
+}
+
+.am-blog-card__more {
+	color: var(--am-gold);
+	font-weight: 600;
+}
+
+/* --- Section 6: trust signals ----------------------------------------- */
+
+.am-trust {
+	background: var(--am-bg-soft); /* [DOC-189] warm cream band */
+	padding: 60px 0;
+}
+
+.am-trust__grid {
+	display: grid;
+	gap: 32px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	text-align: center;
+}
+
+.am-trust__icon {
+	color: var(--am-primary);
+	display: block;
+	font-size: 36px; /* [DOC-189] was 48px */
+	margin-bottom: 12px;
+}
+
+.am-trust__heading {
+	color: var(--am-primary);
+	font-size: 20px;
+	margin-bottom: 8px;
+}
+
+.am-trust__text {
+	color: #666666;
+	font-size: 14px;
+}
+
+/* --- Section 7: closing CTA banner ------------------------------------- */
+
+.am-cta-banner {
+	background: var(--am-primary);
+	border-top: 3px solid var(--am-gold);
+	overflow: hidden;
+	padding: 60px 0;
+	position: relative;
+	text-align: center;
+}
+
+/* [DOC-189] Faint gold wash, mirroring the hero's radial treatment. */
+.am-cta-banner::before {
+	background: radial-gradient(circle at 50% 0%, rgba(212, 160, 23, 0.05) 0%, transparent 70%);
+	content: "";
+	inset: 0;
+	pointer-events: none;
+	position: absolute;
+}
+
+.am-cta-banner .am-container {
+	position: relative;
+}
+
+.am-cta-banner__title {
+	color: #ffffff;
+	font-size: 32px;
+	margin-bottom: 12px;
+}
+
+.am-cta-banner__sub {
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 17px;
+	margin-bottom: 28px;
+}
+
+/* --- Homepage breakpoints ---------------------------------------------- */
+
+/* [DOC-193] Category row: 8 across desktop, 4x2 below 1024. */
+@media (max-width: 1023px) {
+	.am-categories-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 768px) {
+	.am-categories,
+	.am-featured-products,
+	.am-blog-posts,
+	.am-trust,
+	.am-cta-banner {
+		padding: 40px 0;
+	}
+
+	.am-blog-posts__grid,
+	.am-trust__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.am-cta-banner__title {
+		font-size: 26px;
+	}
+}
+
+@media (max-width: 767px) {
+	.am-categories-grid {
+		gap: 8px;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.am-category-card {
+		padding: 12px 6px;
+	}
+
+	.am-category-icon {
+		font-size: 22px;
+	}
+
+	.am-category-name {
+		font-size: 10px;
+	}
+}
+
+/* ==================================================================
+ * [DOC-183] Homepage featured-products teaser: compact 5-up cards.
+ *
+ * Scoped entirely under .am-featured-products so the full-size
+ * catalog cards on /catalog/ and taxonomy pages are untouched. The
+ * desktop column count (5) travels through the shortcode's own
+ * --afpf-cols-desktop inline variable (clamp raised to 5 in the
+ * plugin for this); the tablet/mobile counts below override the
+ * plugin's defaults (2/1) with the teaser's 3/2 — two classes beat
+ * the plugin's single-class selectors at every breakpoint, so no
+ * !important is needed anywhere.
+ * ================================================================== */
+
+/* Square catalog images read as tiles; the teaser wants short
+   letterbox thumbs, so the aspect-ratio box becomes a fixed 160px. */
+.am-featured-products .afpf-card-media {
+	aspect-ratio: auto;
+	height: 160px;
+}
+
+.am-featured-products .afpf-card-body {
+	gap: 6px;
+	padding: 12px 14px 14px;
+}
+
+.am-featured-products .afpf-card-title {
+	font-size: 13px;
+}
+
+.am-featured-products .afpf-card-price {
+	font-size: 14px;
+}
+
+.am-featured-products .afpf-badge-brand,
+.am-featured-products .afpf-badge-scale {
+	font-size: 10px;
+	padding: 2px 8px;
+}
+
+.am-featured-products .afpf-btn {
+	font-size: 12px;
+	padding: 8px 10px;
+}
+
+/* Teaser column counts below the desktop breakpoint: 3 on tablet,
+   2 on phones. Since the [DOC-184] catalog density pass the plugin's
+   own tablet default is also 3 (redundant but kept: the teaser's
+   count is a design decision, not an inheritance), and the mobile
+   rule still matters — it holds 2-up below 480px where the plugin
+   drops to 1. */
+@media (min-width: 768px) and (max-width: 1023px) {
+	.am-featured-products .afpf-grid {
+		--afpf-cols: 3;
+	}
+}
+
+@media (max-width: 767px) {
+	.am-featured-products .afpf-grid {
+		--afpf-cols: 2;
+	}
+}
+
+/* === HERO C ========================================================
+ * [DOC-187] Search-forward homepage hero (replaces the Phase 11
+ * two-button hero).
+ *
+ * The section still carries .am-band, and that class — not the
+ * width:100% here — is what makes it edge-to-edge: the child
+ * header.php boxes everything in Astra's .ast-container, and .am-band
+ * breaks out with negative viewport margins ([DOC-182]). The section
+ * owns its horizontal padding (72px 20px 56px), so the inner column
+ * needs no .am-container; .am-hero-inner centers itself at 680px.
+ * ================================================================== */
+
+.am-hero {
+	background: var(--am-primary);
+	border-radius: 0;
+	border-top: 3px solid var(--am-gold);
+	overflow: hidden;
+	padding: 72px 20px 56px;
+	position: relative;
+	/* [DOC-190] NO width here, and that is the fix, not an omission:
+	   the mockup's width:100% over-constrained the box against
+	   .am-band's negative viewport margins (width pinned to the
+	   container, so only margin-left applied) — the band rendered
+	   container-wide, glued to the LEFT viewport edge, and the
+	   "centered" hero content centered inside that shifted box.
+	   width:auto lets both negative margins stretch it edge to edge
+	   like every other band. */
+}
+
+/* Faint gold radial washes; decorative only, so pointer-events off. */
+.am-hero::before {
+	background:
+		radial-gradient(circle at 80% 50%, rgba(212, 160, 23, 0.06) 0%, transparent 60%),
+		radial-gradient(circle at 20% 80%, rgba(212, 160, 23, 0.04) 0%, transparent 40%);
+	bottom: 0;
+	content: "";
+	left: 0;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+.am-hero-inner {
+	margin: 0 auto;
+	max-width: 680px;
+	position: relative;
+	text-align: center;
+}
+
+.am-hero-eyebrow {
+	background: rgba(212, 160, 23, 0.12);
+	border: 1px solid rgba(212, 160, 23, 0.25);
+	border-radius: 20px;
+	color: var(--am-gold);
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	margin-bottom: 20px;
+	padding: 5px 16px;
+}
+
+.am-hero-title {
+	color: #ffffff;
+	font-family: Georgia, serif;
+	font-size: 42px;
+	font-weight: 500;
+	line-height: 1.2;
+	margin-bottom: 14px;
+}
+
+.am-hero-accent {
+	color: var(--am-gold);
+}
+
+.am-hero-sub {
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 16px;
+	line-height: 1.65;
+	margin-bottom: 28px;
+}
+
+.am-hero-search {
+	background: rgba(255, 255, 255, 0.07);
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 6px;
+	display: flex;
+	margin: 0 auto 24px;
+	max-width: 520px;
+	overflow: hidden;
+	transition: border-color 0.2s;
+}
+
+.am-hero-search:focus-within {
+	border-color: rgba(212, 160, 23, 0.6);
+}
+
+.am-hero-search input {
+	background: transparent;
+	border: none;
+	color: #ffffff;
+	flex: 1;
+	font-family: inherit;
+	font-size: 14px;
+	outline: none;
+	padding: 14px 18px;
+}
+
+.am-hero-search input::placeholder {
+	color: rgba(255, 255, 255, 0.38);
+}
+
+.am-hero-search button {
+	background: var(--am-gold);
+	border: none;
+	color: var(--am-primary);
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 600;
+	padding: 14px 24px;
+	transition: background 0.2s;
+	white-space: nowrap;
+}
+
+.am-hero-search button:hover {
+	background: #c4910f;
+}
+
+.am-hero-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+}
+
+.am-hero-tag {
+	background: rgba(255, 255, 255, 0.07);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 20px;
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 12px;
+	padding: 5px 14px;
+	text-decoration: none;
+	transition: all 0.2s;
+}
+
+.am-hero-tag:hover {
+	background: rgba(212, 160, 23, 0.15);
+	border-color: rgba(212, 160, 23, 0.3);
+	color: var(--am-gold);
+}
+
+@media (max-width: 768px) {
+	.am-hero {
+		padding: 48px 20px 40px;
+	}
+
+	.am-hero-title {
+		font-size: 28px;
+	}
+
+	.am-hero-sub {
+		font-size: 14px;
+	}
+
+	.am-hero-search {
+		max-width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.am-hero-title {
+		font-size: 24px;
+	}
+
+	.am-hero-search {
+		border-radius: 6px;
+		flex-direction: column;
+	}
+
+	.am-hero-search button {
+		border-radius: 0 0 6px 6px;
+		padding: 12px;
+	}
+}
+
+
+/* ==================================================================
+ * [DOC-189] Design C: global modernization layer.
+ *
+ * Appended last so these low-specificity global rules still land
+ * after everything above. html body (not bare body) outweighs the
+ * body rule Astra's Customizer prints inline after this sheet —
+ * the same specificity arms race as the nav hover fix ([DOC-186]).
+ * ================================================================== */
+
+html body {
+	background-color: var(--am-bg-page);
+}
+
+/* Serif voice for headings site-wide; body text stays on the system
+   sans stack Astra provides. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.site-header .site-title {
+	font-family: var(--am-font-serif);
+}
+
+/* One shared motion voice for interactive elements. Components with
+   deliberate transitions (drawer slide, card lifts) override this at
+   higher specificity; prefers-reduced-motion ([DOC-155]) still kills
+   everything. */
+a,
+button,
+input[type="submit"],
+input[type="search"],
+input[type="text"] {
+	transition: all 0.2s ease;
+}
+
+/* Blog cards: explicit top-corner rounding per the Design C spec
+   (overflow:hidden already clips, but the intent should be legible). */
+.am-blog-card__thumb img,
+.am-related__thumb img {
+	border-radius: var(--am-radius-lg) var(--am-radius-lg) 0 0;
+}
+
+
+/* ==================================================================
+ * [DOC-190] Homepage sits flush under the header.
+ *
+ * Astra's plain-container mode puts its content spacing above
+ * #primary, which read as a stray pale gap between the green header
+ * bar and the green hero band. Scoped to the homepage: interior
+ * pages keep Astra's breathing room — articles under a sticky header
+ * need it; a full-bleed hero does not.
+ *
+ * The exact rule being beaten (printed inline, >=1200px):
+ *   .ast-plain-container.ast-no-sidebar #primary { margin-top:60px }
+ * That weighs id+2 classes, so a plain body.home #primary (id+1
+ * class) loses — the doubled body classes below are what win the
+ * fight, same arms race as [DOC-186]/[DOC-189].
+ * ================================================================== */
+body.home.ast-plain-container #primary,
+body.home.ast-plain-container.ast-no-sidebar #primary,
+body.home #primary {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+body.home .site-main {
+	margin-top: 0;
+	padding-top: 0;
+}
+
+/* ==================================================================
+ * [DOC-196] Taxonomy archive header (taxonomy.php, [DOC-195]).
+ *
+ * The header band is full-bleed (.am-band) with a hairline bottom
+ * border separating it from the filter grid; the grid section below
+ * reuses the plugin's own styling untouched.
+ *
+ * [DOC-202] Density pass: the header sits on a light neutral band
+ * (#f4f2ec) and the vertical rhythm was halved — the old spacing
+ * pushed the first product row near the fold. Horizontal breathing
+ * room comes from .am-container's existing padding; nothing here
+ * doubles it.
+ * ================================================================== */
+
+/*
+ * [DOC-202] Kill Astra's archive top gap on PRODUCT taxonomy archives
+ * only. Astra's separate-container mode (which this site uses on
+ * archives — NOT plain-container like the homepage) puts
+ * "padding: 4em 0" on #primary. Scoped per taxonomy body class
+ * instead of body.archive so blog category/date archives keep
+ * Astra's normal spacing.
+ */
+body.tax-product-type #primary,
+body.tax-brand #primary,
+body.tax-scale #primary,
+body.tax-material #primary,
+body.tax-vehicle-make #primary {
+	/* Astra splits the gap across TWO rules: separate-container's
+	   "padding: 4em 0" AND two-container's "margin-top: 4em" —
+	   computed-style probe confirmed both. Zero both. */
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.am-tax-header {
+	background: #f4f2ec;
+	border-bottom: 1px solid var(--am-border-warm);
+	margin-bottom: 0;
+	padding: 20px 0 18px; /* [DOC-202] was 40px 0 32px */
+}
+
+.am-tax-breadcrumb {
+	color: var(--am-muted);
+	font-size: 13px;
+	margin-bottom: 8px; /* [DOC-202] was 12px */
+}
+
+.am-tax-breadcrumb a {
+	color: var(--am-primary);
+	text-decoration: none;
+}
+
+.am-tax-breadcrumb a:hover {
+	color: var(--am-gold);
+}
+
+.am-tax-title {
+	color: var(--am-primary);
+	font-family: var(--am-font-serif);
+	font-size: 36px;
+	font-weight: 500;
+	line-height: 1.2;
+	margin-bottom: 8px;
+}
+
+.am-tax-count {
+	color: var(--am-muted);
+	font-size: 14px;
+	font-style: italic;
+	margin-bottom: 0; /* [DOC-202] Astra's ~24px default p-margin padded the band */
+}
+
+.am-tax-desc {
+	color: var(--am-body);
+	font-size: 15px;
+	line-height: 1.7;
+	margin-top: 12px;
+	max-width: 720px;
+}
+
+.am-tax-products {
+	padding-bottom: 60px;
+	padding-top: 20px; /* [DOC-202] was 32px */
+}
+
+@media (max-width: 768px) {
+	.am-tax-header {
+		padding: 14px 0 12px; /* [DOC-202] proportional to the desktop tightening */
+	}
+
+	.am-tax-title {
+		font-size: 28px;
+	}
+}

@@ -1,0 +1,91 @@
+<?php
+
+namespace ShortPixel;
+use ShortPixel\ShortPixelLogger\ShortPixelLogger as Log;
+
+use ShortPixel\Helper\UiHelper as UiHelper;
+
+
+if ( ! defined( 'ABSPATH' ) ) {
+ exit; // Exit if accessed directly.
+}
+
+$item = $this->view->current_item;
+
+$folder_id = $item->get('id');
+
+$type_display =   ($item->get('is_nextgen') ) ? __('Nextgen', 'shortpixel-image-optimiser') : __('Custom Media', 'shortpixel-image-optimiser');
+$stat = $item->getStats();
+
+
+$fullstatus = esc_html__("Optimized",'shortpixel-image-optimiser') . ": " . $stat['optimized'] . "\n"
+      . "" . esc_html__("Unoptimized",'shortpixel-image-optimiser') . ": " . $stat['waiting'] . "\n"
+      ;
+
+
+$err = ''; // unused since failed is gone.
+if (! $item->exists() && ! $err)
+  $err = __('Directory does not exist', 'shortpixel-image-optimiser');
+
+
+if ($item->get('is_nextgen') && $view->settings->includeNextGen == 1)
+  $action = false;
+
+  $refreshUrl = add_query_arg(array('sp-action' => 'action_refreshfolder', 'folder_id' => $folder_id, 'part' => 'adv-settings'), $this->url); // has url
+
+  $rowActions = $this->getRowActions($item);
+?>
+<div class='item item-<?php echo esc_attr($item->get('id')) ?>'>
+  <span><input type="checkbox" /></span>
+
+    <span class='folder folder-<?php echo esc_attr($item->get('id')) ?>'>
+        <?php echo esc_html($item->getPath()); ?>
+
+      <div class="row-actions">
+      <span class='item-id'>#<?php echo esc_attr($item->get('id')); ?></span>
+      <?php
+      if (isset($rowActions)):
+        $i = 0;
+        foreach($rowActions as $actionName => $action):
+          $classes = '';
+          $link = ($action['type'] == 'js') ? 'javascript:' . $action['function'] : $action['function'];
+
+          if ($i > 0)
+            echo "|";
+          ?>
+          <a href="<?php echo esc_attr($link); ?>" class="<?php echo esc_attr($classes); ?>"><?php echo esc_html($action['text']); ?></a>
+          <?php
+          $i++;
+        endforeach;
+
+      endif;
+      ?>
+    </div>
+
+
+    </span>
+    <span>
+        <?php echo esc_html($type_display); ?>
+    </span>
+    <span>
+
+        <span title="<?php echo esc_attr($fullstatus); ?>" class='info-icon'>
+            <img alt='<?php esc_html_e('Info Icon', 'shortpixel-image-optimiser') ?>' src='<?php echo esc_url( wpSPIO()->plugin_url('res/img/info-icon.png' ));?>' style="margin-bottom: -2px;"/>
+        </span>&nbsp;<?php
+        //echo esc_html($type_display. ' ' );
+        ?>
+
+        <span class='files-number'><?php
+          echo esc_html($stat['optimized']);
+          echo '/';
+          echo esc_html($stat['total']); ?>
+        </span> <?php _e('Files', 'shortpixel-image-optimiser'); ?>
+    </span>
+		<span class='updated'>
+        <?php echo esc_html(UiHelper::formatTS($item->get('updated'))) ?>
+    </span>
+    <span class='status'>
+
+    </span>
+
+</div>

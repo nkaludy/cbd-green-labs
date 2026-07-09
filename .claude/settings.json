@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in *.php) cd \"/Users/nathankaludy/Local Sites/master-template/app/public\" && LOCAL_PHP=\"/Users/nathankaludy/Library/Application Support/Local/lightning-services/php-8.4.10+0/bin/darwin-arm64/bin/php\"; \"$LOCAL_PHP\" ./vendor/bin/phpcbf \"$f\" >/dev/null 2>&1; \"$LOCAL_PHP\" ./vendor/bin/phpcs \"$f\" ;; esac; }",
+            "statusMessage": "Running PHPCS..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,273 @@
+<?php
+namespace ShortPixel\Controller\Optimizer;
+
+if ( ! defined( 'ABSPATH' ) ) {
+ exit; // Exit if accessed directly.
+}
+
+use ShortPixel\Model\Queue\QueueItem as QueueItem;
+use Shortpixel\Controller\Api\RequestManager as RequestManager;
+use ShortPixel\Controller\Backup\BackupController;
+use ShortPixel\Controller\QueueController;
+use ShortPixel\Helper\UiHelper;
+use ShortPixel\Model\Image\ImageModel as ImageModel;
+use ShortPixel\Model\Queue\QueueItemResult;
+use ShortPixel\ShortPixelLogger\ShortPixelLogger as Log;
+
+abstract class OptimizerBase
+{
+
+    protected $api;
+    protected $apiName; 
+
+    protected $response; // json response lives here.
+    protected $currentQueue;  // trying to keep minimum, but optimize needs to speak to queue for items.
+    protected $queueController; // Needed to keep track of bulk /non-bulk
+
+    protected static $blockedItems; // Keeping track of process blocks here. 
+
+    public abstract function enqueueItem(QueueItem $qItem, $args = []) ; // Enqueue Single Item (not for bulk)
+    public abstract function handleAPIResult(QueueItem $qItem);
+    protected abstract function HandleItemError(QueueItem $qItem);
+    public abstract function sendToProcessing(QueueItem $qItem);
+
+    /** Check if item is available for action / process
+    * 
+    * @param QueueItem $qItem 
+    * @return boolean 
+    */
+    public abstract function checkItem(QueueItem $qItem);
+    public $shutdown_registered = false;  // bool . Only start the shutdown function when doing blocks, otherwise it might fatal error upon update/ plugin-deactivation
+
+    static $instances = []; 
+
+    public function __construct()
+    {
+       $this->response = $this->getJsonResponse();
+    }
+
+
+    public static function getInstance()
+    {
+      //exit('This call is wron because in it messes with ActionController - Reoptimize ( calls ActionController again instead of OptimizeConrtoller');
+      $calledClass = get_called_class(); 
+
+      if (! isset(static::$instances[$calledClass]))
+      {
+         static::$instances[$calledClass] = new $calledClass(); 
+      }
+
+        return self::$instances[$calledClass];
+    }
+
+    /** Standard fields for JSON response. 
+    * 
+    * @return stdClass  Json base structure
+    */
+    protected function getJsonResponse()
+    {
+
+      $json = new \stdClass;
+      $json->status = null;
+      $json->result = null;
+      $json->results = null;
+      $json->message = null;
+
+      return $json;
+    }
+
+
+    /** Check if the imageModel was properly loading on the qitem. 
+     * 
+     * @param QueueItem $qItem 
+     * @return bool 
+     */
+    protected function checkImageModel(QueueItem $qItem)
+    {
+
+      if (false === $qItem->checkImageModelExists())  // something wrong
+      {
+
+        $qItem->addResult([
+            'message' => __("File Error. File could not be loaded with this ID ", 'shortpixel-image-optimiser'),
+            'apiStatus' => RequestManager::STATUS_NOT_API,
+            'fileStatus' => ImageModel::FILE_STATUS_ERROR,
+            'is_done' => true,
+            'is_error' => true,
+        ]);
+        return false;
+      }
+
+      return true;
+
+    }
+
+    protected function blockItem(QueueItem $qItem)
+    {
+       $qItem->block(true);
+       $q = $this->getCurrentQueue($qItem);
+       $q->updateItem($qItem);
+
+       self::$blockedItems[$qItem->item_id] = $qItem;      
+       
+       if (false === $this->shutdown_registered)
+         {
+            register_shutdown_function([$this, 'checkBlockedItems']);
+            $this->shutdown_registered = true;
+         }
+    }
+
+    protected function unBlockItem(QueueItem $qItem)
+    {
+       $qItem->block(false);
+       $q = $this->getCurrentQueue($qItem);
+       $q->updateItem($qItem);
+
+       if (isset(self::$blockedItems[$qItem->item_id]))
+       {
+          unset(self::$blockedItems[$qItem->item_id]);
+       }
+    }
+
+    protected function checkBlockedItems()
+    {
+        if (is_null(self::$blockedItems) || count(self::$blockedItems) == 0)
+        {
+           return;     
+        }
+
+        foreach(self::$blockedItems as $blockedItem) // end of process, unblock hanging items. 
+        {
+            Log::addWarn('Shutdown unblocking Item: ', $blockedItem);
+             $this->unBlockItem($blockedItem);     
+        }
+
+    }
+
+    /** Sets the current queue and QueueController.  This is to keep the distinction between single / bulk and set by QueueController
+     * 
+     * @param object $queue 
+     * @param object $queueController 
+     * @return void 
+     */
+    public function setCurrentQueue($queue, $queueController)
+    {
+       $this->queueController = $queueController;
+       $this->currentQueue = $queue;
+    }
+
+    /** Get the current set queue and if not available, create one.
+     * 
+     * @param QueueItem $qItem
+     * @return Object
+     */
+    protected function getCurrentQueue(QueueItem $qItem)
+    {
+        if (is_null($this->currentQueue))
+        {
+           $type = $qItem->imageModel->get('type');
+           $queueController = $this->getQueueController(); // @todo This probably will mess with bulk setting. Correct for it.
+           $this->currentQueue = $queueController->getQueue($type);
+        }
+
+        return $this->currentQueue;
+    }
+
+   /** Get what is currently set for QueueController, if not, create a new one.
+    * 
+    * @return QueueController 
+    */
+    protected function getQueueController()
+    {
+       if (is_null($this->queueController))
+       {
+          $this->queueController = new QueueController(); 
+       }
+
+       return $this->queueController; 
+    }
+
+    /** Finished the Item action.  This main function handles possible next function and if so, put that one in queue.
+     * 
+     * @param QueueItem $qItem 
+     * @return Object Result Object
+     */
+    protected function finishItemProcess(QueueItem $qItem, $args = []) : QueueItemResult
+    {
+        $queue = $this->getCurrentQueue($qItem); 
+        $fs = \wpSPIO()->filesystem();
+        
+        // If the action is passed as direct action / out of queue, there might be no queueItem in DB
+        if (is_object($qItem->getQueueItem()))
+        {
+           $queue->itemDone($qItem); 
+        }
+
+        // Can happen with actions outside queue / direct action 
+        if (true === $qItem->data()->hasNextAction())
+        {
+            $action = $qItem->data()->popNextAction(); 
+            $item_id = $qItem->item_id; 
+            $item_type = $qItem->imageModel->get('type');
+            $imageModel = $fs->getImage($item_id, $item_type, false);
+
+            $args['action'] = $action; 
+            
+            $keepArgs = $qItem->data()->getKeepDataArgs();
+            if (true === $qItem->data()->hasNextAction())
+            {
+                $args['next_actions'] = $qItem->data()->next_actions; 
+            }
+            $args = array_merge($args, $keepArgs);
+
+            Log::addInfo("New Action $action for $item_id with args", $args);
+
+            $queueController = $this->getQueueController(); 
+            $result = $queueController->addItemToQueue($imageModel, $args); 
+        }
+
+        if (! isset($result))
+        {
+           $result = $qItem->result(); 
+        }
+
+        return $result; 
+
+    }
+
+    protected function addPreview(QueueItem $qItem)
+    {
+      $imageModel = $qItem->imageModel; 
+      $showItem = UiHelper::findBestPreview($imageModel); // find smaller / better preview
+      $fs = \wpSPIO()->filesystem();
+
+      $original = $optimized = false;
+
+      $backupModel = BackupController::getBackupModel($imageModel); 
+
+      if ($showItem->getExtension() == 'pdf') // non-showable formats here
+      {
+
+      } elseif ($backupModel->hasBackup($showItem)) {
+        $backupFile = $backupModel->getBackupFile($showItem); 
+        if (false === is_object($backupFile))
+        {
+           $backupFile = $backupModel->getMainBackupFile();
+        } // attach backup for compare in bulk
+        $backup_url = $fs->pathToUrl($backupFile);
+        $original = $backup_url;
+        $optimized = $fs->pathToUrl($showItem);
+      } else {
+        $original = false;
+        $optimized = $fs->pathToUrl($showItem);
+      }
+
+      $qItem->addResult([
+        'original' => $original,
+        'optimized' => $optimized,
+      ]);
+
+      return $qItem;
+    }
+
+}
