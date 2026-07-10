@@ -52,6 +52,48 @@ $afpf_show_limit  = 10;
 		$afpf_selected    = isset( $state['tax'][ $afpf_taxonomy ] ) ? $state['tax'][ $afpf_taxonomy ] : array();
 		$afpf_collapse    = in_array( $afpf_taxonomy, $afpf_collapsible, true ) && count( $afpf_terms ) > $afpf_show_limit;
 		$afpf_group_class = 'afpf-group' . ( $afpf_collapse ? ' afpf-group-collapsed' : '' );
+
+		/*
+		 * [DOC-207] The LOCKED taxonomy renders as NAVIGATION, not as
+		 * checkboxes. On a term archive every product already carries
+		 * the locked term, so checking a sibling term would intersect
+		 * to zero results ("Pet" AND "Flower" matches nothing) and
+		 * read as broken. But hiding the group loses the category
+		 * switcher shoppers expect — so sibling terms become plain
+		 * links to their own archives (single-select by nature, the
+		 * current term highlighted). The links carry no data-afpf-tax
+		 * attribute, so filter.js never sees them and the AJAX state
+		 * cannot pick up a second product-type; the lock itself stays
+		 * untouched in $state['locked'] — this template change cannot
+		 * reintroduce the [DOC-119] validation-ordering trap.
+		 */
+		$afpf_locked_slugs = isset( $state['locked'][ $afpf_taxonomy ] ) ? (array) $state['locked'][ $afpf_taxonomy ] : array();
+
+		if ( ! empty( $afpf_locked_slugs ) ) :
+			?>
+			<fieldset class="afpf-group afpf-group-nav">
+				<legend class="afpf-group-title"><?php echo esc_html( $afpf_tax_object->labels->singular_name ); ?></legend>
+				<div class="afpf-group-options">
+					<?php
+					foreach ( $afpf_terms as $afpf_slug => $afpf_term ) :
+						$afpf_term_url = get_term_link( $afpf_slug, $afpf_taxonomy );
+						if ( is_wp_error( $afpf_term_url ) ) {
+							continue;
+						}
+						$afpf_is_current = in_array( $afpf_slug, $afpf_locked_slugs, true );
+						?>
+						<a class="afpf-nav-link<?php echo $afpf_is_current ? ' afpf-nav-current' : ''; ?>"
+							href="<?php echo esc_url( $afpf_term_url ); ?>"
+							<?php echo $afpf_is_current ? 'aria-current="page"' : ''; ?>>
+							<span class="afpf-check-name"><?php echo esc_html( $afpf_term['name'] ); ?></span>
+							<span class="afpf-check-count"><?php echo esc_html( number_format_i18n( $afpf_term['count'] ) ); ?></span>
+						</a>
+					<?php endforeach; ?>
+				</div>
+			</fieldset>
+			<?php
+			continue;
+		endif;
 		?>
 		<fieldset class="<?php echo esc_attr( $afpf_group_class ); ?>" data-afpf-group="<?php echo esc_attr( $afpf_taxonomy ); ?>">
 			<legend class="afpf-group-title"><?php echo esc_html( $afpf_tax_object->labels->singular_name ); ?></legend>

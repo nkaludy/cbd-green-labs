@@ -299,6 +299,44 @@
 	display: none;
 }
 
+/* ------------------------------------------------------------------
+ * [DOC-207] Locked-taxonomy NAV group (filter-panel.php): on a term
+ * archive the locked taxonomy's sibling terms render as archive
+ * links, not checkboxes — a vertical single-select list with the
+ * current term as a solid pill, visually distinct from the wrapping
+ * checkbox pills of the refinement groups.
+ * ------------------------------------------------------------------ */
+.afpf-group-nav .afpf-group-options {
+	flex-direction: column;
+	gap: 4px;
+}
+
+.afpf-nav-link {
+	align-items: center;
+	border-radius: 999px;
+	color: var(--afpf-text);
+	display: flex;
+	font-size: 13px;
+	justify-content: space-between;
+	padding: 8px 14px;
+	text-decoration: none;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.afpf-nav-link:hover {
+	background: var(--afpf-bg-soft);
+	color: var(--afpf-primary);
+}
+
+.afpf-nav-link.afpf-nav-current {
+	background: var(--afpf-primary);
+	color: #ffffff;
+}
+
+.afpf-nav-link.afpf-nav-current .afpf-check-count {
+	color: rgba(255, 255, 255, 0.75);
+}
+
 .afpf-group-more {
 	background: none;
 	border: none;

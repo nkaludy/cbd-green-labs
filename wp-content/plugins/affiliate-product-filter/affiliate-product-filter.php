@@ -3,7 +3,7 @@
  * Plugin Name:       Affiliate Product Filter
  * Plugin URI:        https://github.com/nkaludy/master-template
  * Description:       AJAX-powered filtering and search for the affiliate_product catalog: taxonomy filters, live search, shareable URLs and a responsive product grid via the [affiliate_filter] shortcode.
- * Version:           1.1.7
+ * Version:           1.1.8
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            Master Template
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AFPF_VERSION', '1.1.7' );
+define( 'AFPF_VERSION', '1.1.8' );
 define( 'AFPF_PLUGIN_FILE', __FILE__ );
 define( 'AFPF_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AFPF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
