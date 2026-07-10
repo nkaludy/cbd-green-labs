@@ -426,6 +426,31 @@ class AFPI_Post_Creator {
 			$product_type = self::detect_product_type( (string) $mapped['post_title'] );
 			wp_set_object_terms( $post_id, array( $product_type ), 'product-type', false );
 		}
+
+		/*
+		 * [DOC-206] Additional title-derived taxonomies, niche-defined.
+		 *
+		 * Same config pattern as afpi_product_type_rules, one level up:
+		 * an instance registers taxonomy => callable pairs, each
+		 * callable turning a title into a term NAME ('' = assign
+		 * nothing). Callables rather than keyword tables because these
+		 * dimensions aren't always keyword-shaped — the CBD strength
+		 * facet parses and buckets a milligram VALUE, which no
+		 * keyword table can express. Empty by default: a clone that
+		 * registers nothing imports exactly as before.
+		 */
+		$detectors = apply_filters( 'afpi_title_term_detectors', array() );
+		if ( ! empty( $mapped['post_title'] ) ) {
+			foreach ( $detectors as $taxonomy => $callback ) {
+				if ( ! taxonomy_exists( $taxonomy ) || ! is_callable( $callback ) ) {
+					continue;
+				}
+				$term = (string) call_user_func( $callback, (string) $mapped['post_title'] );
+				if ( '' !== $term ) {
+					wp_set_object_terms( $post_id, array( $term ), $taxonomy, false );
+				}
+			}
+		}
 	}
 
 	/**

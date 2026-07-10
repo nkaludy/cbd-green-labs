@@ -307,6 +307,16 @@ function affiliate_master_register_taxonomies() {
 		),
 	);
 
+	/*
+	 * [DOC-205] Filterable so a niche instance swaps its browse
+	 * dimensions without editing this shared file (the CLAUDE.md
+	 * niche-config-through-filters rule): the CBD instance retires
+	 * scale/vehicle-make and registers cannabinoid/strength through
+	 * this hook ([CBD-11] in functions.php). Entries keep the same
+	 * shape — slug => singular/plural labels.
+	 */
+	$taxonomies = apply_filters( 'affiliate_master_product_taxonomies', $taxonomies );
+
 	foreach ( $taxonomies as $slug => $tax ) {
 		/*
 		 * [DOC-107] Shared behavioural args, and why:
