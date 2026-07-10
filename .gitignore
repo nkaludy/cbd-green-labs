@@ -69,3 +69,7 @@ affiliate-csv-cleaner/**/*_cleaned.csv
 # Design mockups: local reference stash for the CBD redesign, not
 # site code — must never deploy.
 /_mockup/
+
+# Blog draft sources: markdown masters for posts imported into the DB
+# (wp post create) — content lives in WordPress, not the repo.
+/_blog-drafts/
