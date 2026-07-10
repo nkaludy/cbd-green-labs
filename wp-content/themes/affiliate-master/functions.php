@@ -64,6 +64,19 @@ function affiliate_master_enqueue_styles() {
 	);
 
 	/*
+	 * [CBD-02] Brand fonts, enqueued (NOT @import-ed — the mockup's
+	 * @import would serialize the download behind the stylesheet).
+	 * Archivo = display, Hanken Grotesk = body, Space Mono = eyebrows
+	 * and labels; consumed via the --am-font-* tokens in the CBD skin.
+	 */
+	wp_enqueue_style(
+		'affiliate-master-fonts',
+		'https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono&display=swap',
+		array(),
+		null // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Google versions the URL itself; a WP param would only bust its cache.
+	);
+
+	/*
 	 * style.css now depends on BOTH the parent and the legacy product
 	 * stylesheet: since Phase 9 it carries the comprehensive design
 	 * system ([DOC-155]), and loading last means its refinements of the
@@ -72,11 +85,61 @@ function affiliate_master_enqueue_styles() {
 	wp_enqueue_style(
 		'affiliate-master-style',
 		get_stylesheet_directory_uri() . '/style.css',
-		array( $parent_style, 'affiliate-master-product-styles' ),
+		array( $parent_style, 'affiliate-master-product-styles', 'affiliate-master-fonts' ),
 		wp_get_theme()->get( 'Version' )
 	);
 }
 add_action( 'wp_enqueue_scripts', 'affiliate_master_enqueue_styles' );
+
+/**
+ * [CBD-03] CBD Green Labs niche configuration.
+ *
+ * Instance data flows through the template's filter hooks (per this
+ * repo's CLAUDE.md: filters, never hardcoded shared code). Category
+ * archive links will 404 until the CBD product-type terms are seeded
+ * from the real feed — expected during the build (brief §7).
+ */
+function cbd_home_categories() {
+	return array(
+		array(
+			'num'   => '01',
+			'label' => __( 'Oils & Tinctures', 'affiliate-master' ),
+			'desc'  => __( 'Daily drops for steady balance →', 'affiliate-master' ),
+			'url'   => home_url( '/product-type/oils-tinctures/' ),
+		),
+		array(
+			'num'   => '02',
+			'label' => __( 'Gummies', 'affiliate-master' ),
+			'desc'  => __( 'Calm & sleep, one chew at a time →', 'affiliate-master' ),
+			'url'   => home_url( '/product-type/gummies/' ),
+		),
+		array(
+			'num'   => '03',
+			'label' => __( 'Topicals', 'affiliate-master' ),
+			'desc'  => __( 'Balms for where it aches →', 'affiliate-master' ),
+			'url'   => home_url( '/product-type/topicals/' ),
+		),
+	);
+}
+add_filter( 'affiliate_master_home_categories', 'cbd_home_categories' );
+
+// The die-cast scale pills have no CBD equivalent; the strength
+// dimension becomes a catalog facet when the feed lands (brief §7).
+add_filter( 'affiliate_master_home_scales', '__return_empty_array' );
+
+/**
+ * FDA statement — required footer compliance line for a CBD site
+ * (renders via the [CBD-05] hook in footer.php, next to the FTC
+ * affiliate disclosure).
+ *
+ * @param array $lines Compliance lines queued so far.
+ * @return array
+ */
+function cbd_footer_compliance( $lines ) {
+	$lines[] = __( 'These statements have not been evaluated by the FDA. Products featured here are not intended to diagnose, treat, cure, or prevent any disease.', 'affiliate-master' );
+	return $lines;
+}
+add_filter( 'affiliate_master_footer_compliance', 'cbd_footer_compliance' );
 
 /**
  * [DOC-164] Theme supports, nav menus and image sizes.

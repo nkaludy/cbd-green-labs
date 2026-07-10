@@ -92,6 +92,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 				);
 				?>
 			</div>
+
+			<?php
+			/*
+			 * [CBD-05] Niche compliance lines (e.g. the CBD FDA
+			 * statement). Empty by default so non-regulated niches
+			 * render nothing; instances add lines via the filter in
+			 * functions.php — same portability rule as [DOC-171].
+			 */
+			$am_compliance_lines = apply_filters( 'affiliate_master_footer_compliance', array() );
+			foreach ( $am_compliance_lines as $am_compliance_line ) :
+				?>
+				<div class="am-footer-disclosure am-footer-compliance"><?php echo esc_html( $am_compliance_line ); ?></div>
+			<?php endforeach; ?>
 		</div>
 	</footer>
 

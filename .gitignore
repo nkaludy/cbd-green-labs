@@ -65,3 +65,7 @@ CLAUDE.local.md
 # Affiliate CSV cleaner: generated output and Python bytecode
 affiliate-csv-cleaner/**/__pycache__/
 affiliate-csv-cleaner/**/*_cleaned.csv
+
+# Design mockups: local reference stash for the CBD redesign, not
+# site code — must never deploy.
+/_mockup/

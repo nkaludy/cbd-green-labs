@@ -61,6 +61,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	?>
 >
 	<?php
+	/*
+	 * [CBD-04] Announcement bar — inside #page so it sits within the
+	 * rounded page shell, above the header. Copy is affiliate-
+	 * appropriate: no shipping claims — this site doesn't ship
+	 * anything (brief §3).
+	 */
+	?>
+	<div class="am-announce">
+		<?php esc_html_e( 'Third-party lab-tested products · Curated from trusted CBD brands.', 'affiliate-master' ); ?>
+	</div>
+	<?php
 	astra_header_before();
 
 	// Branding + primary navigation, rendered by the parent (see the

@@ -69,8 +69,13 @@ $am_products_tax = $am_taxonomy && in_array( 'affiliate_product', (array) $am_ta
 					<p class="am-tax-count">
 						<?php
 						printf(
+							/*
+							 * [CBD-08] Niche-neutral wording — the old string
+							 * said "die cast models", a die-cast-era leftover
+							 * this instance must not inherit.
+							 */
 							/* translators: 1: product count, 2: term name. */
-							esc_html__( 'Browsing %1$s die cast models in %2$s', 'affiliate-master' ),
+							esc_html__( 'Browsing %1$s products in %2$s', 'affiliate-master' ),
 							esc_html( number_format_i18n( (int) $am_term->count ) ),
 							esc_html( $am_term->name )
 						);
