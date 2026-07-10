@@ -82,36 +82,64 @@ get_header(); ?>
 			<?php
 			/*
 			---------------------------------------------------------
-			 * Section 2 — Category cards (numbered, 3-up).
+			 * Section 2 — Category boxes (compact, one per term).
 			 *
-			 * CBD entries are supplied via the affiliate_master_home_
-			 * categories filter from functions.php; the defaults below
-			 * are neutral placeholders so the template renders even
-			 * with the filter removed. NOTE: the product-type archive
-			 * links 404 until the CBD taxonomy terms are seeded from
-			 * the real feed (brief §7) — expected during the build.
+			 * [CBD-10] Built dynamically from the product-type
+			 * taxonomy (hide_empty), so the row grows on its own as
+			 * imports land — busiest categories first. The result
+			 * still flows through affiliate_master_home_categories:
+			 * the CBD instance uses it to pluralize display labels
+			 * (functions.php), other clones can reorder or replace.
 			 * -------------------------------------------------------
 			 */
-			$am_categories = apply_filters(
-				'affiliate_master_home_categories',
-				array(
-					array(
-						'num'   => '01',
-						'label' => __( 'Category one', 'affiliate-master' ),
-						'desc'  => __( 'Placeholder — configure via filter →', 'affiliate-master' ),
-						'url'   => home_url( '/catalog/' ),
-					),
-				)
-			);
+			// [CBD-13] Shared builder (also feeds the single product
+			// page's keep-shopping links); label overrides included.
+			$am_categories = affiliate_master_get_product_type_categories();
+
+			if ( ! empty( $am_categories ) ) :
+				?>
+				<section class="am-cats am-cats--compact">
+					<?php foreach ( $am_categories as $am_category ) : ?>
+						<a class="am-cat am-cat--sm" href="<?php echo esc_url( $am_category['url'] ); ?>">
+							<span class="am-cat__name"><?php echo esc_html( $am_category['label'] ); ?></span>
+							<?php if ( ! empty( $am_category['count'] ) ) : ?>
+								<span class="am-cat__count">&middot; <?php echo esc_html( number_format_i18n( $am_category['count'] ) ); ?></span>
+							<?php endif; ?>
+						</a>
+					<?php endforeach; ?>
+				</section>
+			<?php endif; ?>
+
+			<?php
+			/*
+			---------------------------------------------------------
+			 * Section 2b — Product search.
+			 *
+			 * [CBD-10] A plain GET form aimed at the catalog page,
+			 * carrying the filter plugin's OWN query param: the
+			 * plugin parses afpf_search from $_GET server-side
+			 * ([DOC-154] shareable-URL state), so the first paint of
+			 * /catalog/ arrives already filtered to affiliate_product
+			 * results — blog posts and pages can never appear. No JS,
+			 * no new endpoint, no WP search fallback needed.
+			 * -------------------------------------------------------
+			 */
 			?>
-			<section class="am-cats">
-				<?php foreach ( $am_categories as $am_category ) : ?>
-					<a class="am-cat" href="<?php echo esc_url( $am_category['url'] ); ?>">
-						<div class="am-cat__num"><?php echo esc_html( $am_category['num'] ?? '' ); ?></div>
-						<h3 class="am-cat__title"><?php echo esc_html( $am_category['label'] ); ?></h3>
-						<p class="am-cat__desc"><?php echo esc_html( $am_category['desc'] ?? '' ); ?></p>
-					</a>
-				<?php endforeach; ?>
+			<section class="am-home-search-band">
+				<form class="am-home-search" role="search" method="get" action="<?php echo esc_url( home_url( '/catalog/' ) ); ?>">
+					<svg class="am-home-search__icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+						<circle cx="11" cy="11" r="7"></circle>
+						<line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+					</svg>
+					<label class="screen-reader-text" for="am-home-search-input"><?php esc_html_e( 'Search products', 'affiliate-master' ); ?></label>
+					<input
+						type="search"
+						id="am-home-search-input"
+						name="afpf_search"
+						placeholder="<?php esc_attr_e( 'Search CBD products…', 'affiliate-master' ); ?>"
+					/>
+					<button type="submit" class="am-home-search__btn"><?php esc_html_e( 'Search', 'affiliate-master' ); ?></button>
+				</form>
 			</section>
 
 			<?php

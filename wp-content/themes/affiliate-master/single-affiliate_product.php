@@ -232,6 +232,116 @@ get_header(); ?>
 			</article>
 
 			<?php
+			/*
+			 * [CBD-14] Bottom block, part A — related products.
+			 *
+			 * Siblings from the current product's product-type via the
+			 * filter plugin's own term-locked grid (static: no sidebar,
+			 * no Load More). The current product is excluded through a
+			 * render-scoped afpf_query_args hook — the shortcode has no
+			 * exclude att, and this is the plugin's designed extension
+			 * point ([DOC-201] uses it the same way). Hidden below two
+			 * siblings: a "related" strip with one card reads emptier
+			 * than no strip at all.
+			 */
+			$am_type_terms = get_the_terms( get_the_ID(), 'product-type' );
+			$am_type_term  = ( $am_type_terms && ! is_wp_error( $am_type_terms ) ) ? $am_type_terms[0] : null;
+
+			if ( $am_type_term && ( (int) $am_type_term->count - 1 ) >= 2 ) :
+				$am_type_label = wp_specialchars_decode( $am_type_term->name, ENT_QUOTES );
+				$am_type_link  = get_term_link( $am_type_term );
+				?>
+				<section class="am-product-related">
+					<div class="am-section-head">
+						<h2>
+							<?php
+							/* translators: %s: product-type term name. */
+							echo esc_html( sprintf( __( 'More %s Products', 'affiliate-master' ), $am_type_label ) );
+							?>
+						</h2>
+						<?php if ( ! is_wp_error( $am_type_link ) ) : ?>
+							<a class="am-link-more" href="<?php echo esc_url( $am_type_link ); ?>"><?php esc_html_e( 'View all →', 'affiliate-master' ); ?></a>
+						<?php endif; ?>
+					</div>
+					<?php
+					$am_exclude_current = static function ( $args ) {
+						$args['post__not_in'] = array( get_the_ID() );
+						return $args;
+					};
+					add_filter( 'afpf_query_args', $am_exclude_current );
+
+					// Plugin-built markup (cards, prices, buy buttons);
+					// escaping would destroy it.
+					echo do_shortcode(
+						sprintf(
+							'[affiliate_filter taxonomy="product-type" term="%s" per_page="8" columns="4" show_filters="false"]',
+							esc_attr( $am_type_term->slug )
+						)
+					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+
+					remove_filter( 'afpf_query_args', $am_exclude_current );
+					?>
+				</section>
+			<?php endif; ?>
+
+			<?php
+			/*
+			 * [CBD-14] Bottom block, part B — keep shopping.
+			 *
+			 * The homepage's product search ([CBD-10]: GET form carrying
+			 * the plugin's own afpf_search param to /catalog/, filtered
+			 * server-side) plus the shared category list, so a visitor
+			 * who lands here from search can reach the whole catalog
+			 * without backtracking.
+			 */
+			$am_shop_categories = affiliate_master_get_product_type_categories();
+			?>
+			<section class="am-shop-all">
+				<h2 class="am-shop-all__title"><?php esc_html_e( 'Looking for something else?', 'affiliate-master' ); ?></h2>
+
+				<form class="am-home-search" role="search" method="get" action="<?php echo esc_url( home_url( '/catalog/' ) ); ?>">
+					<svg class="am-home-search__icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+						<circle cx="11" cy="11" r="7"></circle>
+						<line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+					</svg>
+					<label class="screen-reader-text" for="am-shop-search-input"><?php esc_html_e( 'Search products', 'affiliate-master' ); ?></label>
+					<input
+						type="search"
+						id="am-shop-search-input"
+						name="afpf_search"
+						placeholder="<?php esc_attr_e( 'Search CBD products…', 'affiliate-master' ); ?>"
+					/>
+					<button type="submit" class="am-home-search__btn"><?php esc_html_e( 'Search', 'affiliate-master' ); ?></button>
+				</form>
+
+				<?php if ( ! empty( $am_shop_categories ) ) : ?>
+					<div class="am-shop-all__cats">
+						<?php
+						// "All products" leads the row: the unfiltered
+						// catalog, carrying the full product count so it
+						// matches the name-plus-count shape of the term
+						// pills beside it.
+						$am_total_products = (int) wp_count_posts( 'affiliate_product' )->publish;
+						?>
+						<a class="am-cat-pill am-cat-pill--all" href="<?php echo esc_url( home_url( '/catalog/' ) ); ?>">
+							<?php esc_html_e( 'All products', 'affiliate-master' ); ?>
+							<?php if ( $am_total_products > 0 ) : ?>
+								<span class="am-cat-pill__count"><?php echo esc_html( number_format_i18n( $am_total_products ) ); ?></span>
+							<?php endif; ?>
+						</a>
+						<?php foreach ( $am_shop_categories as $am_shop_category ) : ?>
+							<a class="am-cat-pill" href="<?php echo esc_url( $am_shop_category['url'] ); ?>">
+								<?php echo esc_html( $am_shop_category['label'] ); ?>
+								<?php if ( ! empty( $am_shop_category['count'] ) ) : ?>
+									<span class="am-cat-pill__count"><?php echo esc_html( number_format_i18n( $am_shop_category['count'] ) ); ?></span>
+								<?php endif; ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+			</section>
+
+			<?php
 		endwhile;
 		?>
 

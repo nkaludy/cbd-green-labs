@@ -2805,6 +2805,192 @@ body.page .am-page__title {
 	font-family: var(--am-font-body);
 }
 
+/* --- [CBD-10] Homepage: compact category boxes + product search --- */
+
+.am-cats--compact {
+	gap: 12px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	margin-bottom: 4px;
+}
+
+.am-cat--sm {
+	align-items: baseline;
+	border-radius: var(--am-radius);
+	display: flex;
+	gap: 8px;
+	padding: 18px 22px;
+}
+
+.am-cat__name {
+	color: var(--am-primary-dark);
+	font-family: var(--am-font-display);
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.am-cat__count {
+	color: var(--am-gold);
+	font-family: var(--am-font-mono);
+	font-size: 12px;
+	letter-spacing: 0.06em;
+}
+
+.am-home-search-band {
+	margin: 16px 0 8px;
+}
+
+.am-home-search {
+	align-items: center;
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-2);
+	border-radius: var(--am-pill);
+	display: flex;
+	gap: 10px;
+	padding: 6px 6px 6px 20px;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+	width: 100%;
+}
+
+.am-home-search:focus-within {
+	border-color: var(--am-gold);
+	box-shadow: 0 0 0 2px rgba(47, 74, 60, 0.12);
+}
+
+.am-home-search__icon {
+	color: var(--am-gold);
+	flex: 0 0 auto;
+}
+
+.am-home-search input[type="search"] {
+	background: transparent;
+	border: none;
+	color: var(--am-text);
+	flex: 1 1 auto;
+	font-family: var(--am-font-body);
+	font-size: 15px;
+	min-width: 0;
+	outline: none;
+	padding: 10px 0;
+}
+
+.am-home-search input[type="search"]::placeholder {
+	color: var(--am-muted);
+}
+
+.am-home-search__btn {
+	background: var(--am-primary);
+	border: none;
+	border-radius: var(--am-pill);
+	color: var(--am-bg-cream);
+	cursor: pointer;
+	flex: 0 0 auto;
+	font-family: var(--am-font-body);
+	font-size: 14px;
+	font-weight: 600;
+	padding: 12px 26px;
+	transition: background 0.2s ease;
+}
+
+.am-home-search__btn:hover,
+.am-home-search__btn:focus {
+	background: var(--am-primary-dark);
+}
+
+@media (max-width: 900px) {
+	.am-cats--compact {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* --- [CBD-14] Single product bottom block ---------------------------
+   Related siblings grid + the sage "keep shopping" panel (search bar
+   reuses the [CBD-10] .am-home-search component unchanged). -------- */
+
+.am-product-related {
+	margin: 48px 0 8px;
+}
+
+.am-shop-all {
+	background: var(--am-sage);
+	border-radius: var(--am-radius-band);
+	margin: 40px 0 24px;
+	padding: 36px 40px 32px;
+}
+
+.am-shop-all__title {
+	color: var(--am-primary-dark);
+	font-family: var(--am-font-display);
+	font-size: 24px;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	margin: 0 0 20px;
+}
+
+.am-shop-all .am-home-search {
+	margin-bottom: 18px;
+}
+
+.am-shop-all__cats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.am-cat-pill {
+	align-items: baseline;
+	background: var(--am-bg);
+	border: 1px solid var(--am-border-2);
+	border-radius: var(--am-pill);
+	color: var(--am-primary-dark);
+	display: inline-flex;
+	font-family: var(--am-font-display);
+	font-size: 14px;
+	font-weight: 600;
+	gap: 6px;
+	padding: 9px 16px;
+	text-decoration: none;
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.am-cat-pill:hover,
+.am-cat-pill:focus {
+	background: var(--am-bg-cream);
+	border-color: var(--am-gold);
+	color: var(--am-primary);
+}
+
+.am-cat-pill__count {
+	color: var(--am-gold);
+	font-family: var(--am-font-mono);
+	font-size: 11px;
+	letter-spacing: 0.06em;
+}
+
+/* Lead pill: the unfiltered catalog, solid forest so it reads as the
+   primary "shop everything" action ahead of the term pills. */
+.am-cat-pill--all {
+	background: var(--am-primary);
+	border-color: var(--am-primary);
+	color: var(--am-bg-cream);
+}
+
+.am-cat-pill--all:hover,
+.am-cat-pill--all:focus {
+	background: var(--am-primary-dark);
+	border-color: var(--am-primary-dark);
+	color: var(--am-bg-cream);
+}
+
+.am-cat-pill--all .am-cat-pill__count {
+	color: var(--am-on-dark-mut);
+}
+
+@media (max-width: 600px) {
+	.am-shop-all {
+		padding: 26px 22px;
+	}
+}
+
 /* Single product buy button: cream-on-forest pill (the old rule
    paired gold text with the green fill — no contrast now). */
 .affiliate-product__buy-now {

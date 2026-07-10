@@ -99,30 +99,32 @@ add_action( 'wp_enqueue_scripts', 'affiliate_master_enqueue_styles' );
  * archive links will 404 until the CBD product-type terms are seeded
  * from the real feed — expected during the build (brief §7).
  */
-function cbd_home_categories() {
-	// Slugs match the real terms the [CBD-09] import rules create
-	// (Oil & Tincture -> oil-tincture, Topical -> topical); the labels
-	// stay in friendly plural marketing voice.
-	return array(
-		array(
-			'num'   => '01',
-			'label' => __( 'Oils & Tinctures', 'affiliate-master' ),
-			'desc'  => __( 'Daily drops for steady balance →', 'affiliate-master' ),
-			'url'   => home_url( '/product-type/oil-tincture/' ),
-		),
-		array(
-			'num'   => '02',
-			'label' => __( 'Gummies', 'affiliate-master' ),
-			'desc'  => __( 'Calm & sleep, one chew at a time →', 'affiliate-master' ),
-			'url'   => home_url( '/product-type/gummies/' ),
-		),
-		array(
-			'num'   => '03',
-			'label' => __( 'Topicals', 'affiliate-master' ),
-			'desc'  => __( 'Balms for where it aches →', 'affiliate-master' ),
-			'url'   => home_url( '/product-type/topical/' ),
-		),
+function cbd_home_categories( $categories ) {
+	/*
+	 * [CBD-10] The homepage now builds this list dynamically from the
+	 * product-type terms (front-page.php); this filter only swaps the
+	 * singular term names ([CBD-09] rules) for plural marketing labels
+	 * on the category boxes. Unmapped names pass through untouched.
+	 */
+	$labels = array(
+		'Oil & Tincture'   => __( 'Oils & Tinctures', 'affiliate-master' ),
+		'Topical'          => __( 'Topicals', 'affiliate-master' ),
+		'Vape'             => __( 'Vapes', 'affiliate-master' ),
+		'Edible'           => __( 'Edibles', 'affiliate-master' ),
+		'Beverage'         => __( 'Beverages', 'affiliate-master' ),
+		'Pre-Roll'         => __( 'Pre-Rolls', 'affiliate-master' ),
+		'Concentrate'      => __( 'Concentrates', 'affiliate-master' ),
+		'Capsule & Tablet' => __( 'Capsules & Tablets', 'affiliate-master' ),
+		'Accessory'        => __( 'Accessories', 'affiliate-master' ),
 	);
+
+	foreach ( $categories as &$category ) {
+		if ( isset( $labels[ $category['label'] ] ) ) {
+			$category['label'] = $labels[ $category['label'] ];
+		}
+	}
+
+	return $categories;
 }
 add_filter( 'affiliate_master_home_categories', 'cbd_home_categories' );
 
@@ -170,6 +172,190 @@ function cbd_product_type_default() {
 	return 'Other';
 }
 add_filter( 'afpi_product_type_default', 'cbd_product_type_default' );
+
+/**
+ * [CBD-13] Product-type category list, shared by the homepage boxes
+ * and the single product page's "keep shopping" links.
+ *
+ * Built dynamically from the taxonomy (hide_empty, busiest first) and
+ * passed through affiliate_master_home_categories so display-label
+ * overrides ([CBD-10] pluralization) apply everywhere the list shows.
+ *
+ * @return array[] Each: label, count, url.
+ */
+function affiliate_master_get_product_type_categories() {
+	$type_terms = get_terms(
+		array(
+			'taxonomy'   => 'product-type',
+			'hide_empty' => true,
+			'orderby'    => 'count',
+			'order'      => 'DESC',
+		)
+	);
+
+	$categories = array();
+	if ( ! is_wp_error( $type_terms ) ) {
+		foreach ( $type_terms as $type_term ) {
+			$term_link = get_term_link( $type_term );
+			if ( is_wp_error( $term_link ) ) {
+				continue;
+			}
+			$categories[] = array(
+				// Decoded: WP stores "&" in term names as "&amp;", which
+				// would sail past the label map; esc_html re-encodes.
+				'label' => wp_specialchars_decode( $type_term->name, ENT_QUOTES ),
+				'count' => (int) $type_term->count,
+				'url'   => $term_link,
+			);
+		}
+	}
+
+	return apply_filters( 'affiliate_master_home_categories', $categories );
+}
+
+/**
+ * [CBD-11] CBD taxonomy set: retire the die-cast browse dimensions,
+ * register the CBD ones ([DOC-205] hook).
+ *
+ * material stays for now (unused die-cast vocabulary, pending a
+ * decision); brand and product-type carry over as-is.
+ *
+ * @param array $taxonomies slug => singular/plural label pairs.
+ * @return array
+ */
+function cbd_product_taxonomies( $taxonomies ) {
+	unset( $taxonomies['scale'], $taxonomies['vehicle-make'] );
+
+	$taxonomies['cannabinoid'] = array(
+		'singular' => __( 'Cannabinoid', 'affiliate-master' ),
+		'plural'   => __( 'Cannabinoids', 'affiliate-master' ),
+	);
+	$taxonomies['strength']    = array(
+		'singular' => __( 'Strength', 'affiliate-master' ),
+		'plural'   => __( 'Strengths', 'affiliate-master' ),
+	);
+
+	return $taxonomies;
+}
+add_filter( 'affiliate_master_product_taxonomies', 'cbd_product_taxonomies' );
+
+/**
+ * Cannabinoid from a product title — first matching rule wins.
+ *
+ * Tolerant patterns (the feed writes "Delta 8", "delta-8" and "D8"
+ * interchangeably); \bcbd\b sits LAST among the anchored rules so
+ * "CBD + CBG Oil" style titles land on the more specific cannabinoid,
+ * and an unanchored cbd catches brand-compound titles ("PlusCBD
+ * Softgels") the word boundary can't see.
+ *
+ * @param string $title Product title.
+ * @return string Term name, '' when nothing matches.
+ */
+function cbd_detect_cannabinoid( $title ) {
+	$rules = array(
+		'THCA'     => '/\bthc-?a\b/i',
+		'Delta-8'  => '/\b(?:delta[\s-]?8|d8)\b/i',
+		'Delta-9'  => '/\b(?:delta[\s-]?9|d9)\b/i',
+		'Delta-10' => '/\b(?:delta[\s-]?10|d10)\b/i',
+		'THC-P'    => '/\bthc[\s-]?p\b/i',
+		'THC-O'    => '/\bthc[\s-]?o\b/i',
+		'HHC'      => '/\bhhc\b/i',
+		'CBG'      => '/\bcbg\b/i',
+		'CBN'      => '/\bcbn\b/i',
+		'CBD'      => '/\bcbd\b/i',
+	);
+
+	foreach ( $rules as $term => $pattern ) {
+		if ( preg_match( $pattern, $title ) ) {
+			return $term;
+		}
+	}
+
+	return false !== stripos( $title, 'cbd' ) ? 'CBD' : '';
+}
+
+/**
+ * Strength bucket from the mg value in a product title.
+ *
+ * The LARGEST mg wins when a title carries several ("150mg, 600mg"
+ * variant listings, per-piece + total pairs) — the biggest number is
+ * the total/strongest option, which is what a strength facet should
+ * sort by. No mg (flower grams, bundles) = no term. 1000 exactly
+ * lands in 500-1000mg.
+ *
+ * @param string $title Product title.
+ * @return string Term name, '' when the title has no mg value.
+ */
+function cbd_detect_strength( $title ) {
+	if ( ! preg_match_all( '/(\d[\d,]*(?:\.\d+)?)\s*mg\b/i', $title, $matches ) ) {
+		return '';
+	}
+
+	$max = 0.0;
+	foreach ( $matches[1] as $value ) {
+		$max = max( $max, (float) str_replace( ',', '', $value ) );
+	}
+
+	if ( $max <= 0 ) {
+		return '';
+	}
+	if ( $max < 500 ) {
+		return 'Under 500mg';
+	}
+	return $max <= 1000 ? '500-1000mg' : '1000mg+';
+}
+
+/**
+ * Wire both detectors into the importer ([DOC-206]).
+ *
+ * @param array $detectors taxonomy => callable map.
+ * @return array
+ */
+function cbd_title_term_detectors( $detectors ) {
+	$detectors['cannabinoid'] = 'cbd_detect_cannabinoid';
+	$detectors['strength']    = 'cbd_detect_strength';
+	return $detectors;
+}
+add_filter( 'afpi_title_term_detectors', 'cbd_title_term_detectors' );
+
+/**
+ * Seed vocabulary: the three strength buckets need explicit slugs
+ * ("1000mg+" would auto-slugify to "1000mg", losing the "plus");
+ * cannabinoid terms self-create on import with clean slugs. The
+ * die-cast vehicle-make list is dropped (taxonomy retired above).
+ *
+ * @param array $terms taxonomy => term list ([DOC-111] shape).
+ * @return array
+ */
+function cbd_seed_terms( $terms ) {
+	unset( $terms['vehicle-make'] );
+
+	$terms['strength'] = array(
+		'Under 500mg' => 'under-500mg',
+		'500-1000mg'  => '500-1000mg',
+		'1000mg+'     => '1000mg-plus',
+	);
+
+	return $terms;
+}
+add_filter( 'affiliate_master_seed_terms', 'cbd_seed_terms' );
+
+/**
+ * Catalog facets: refinement dimensions for a CBD shopper. scale and
+ * material leave the panel; on term-locked archives the plugin drops
+ * the locked taxonomy from this map itself ([DOC-207]).
+ *
+ * @return array URL param key => taxonomy name.
+ */
+function cbd_filter_taxonomies() {
+	return array(
+		'type'        => 'product-type',
+		'cannabinoid' => 'cannabinoid',
+		'strength'    => 'strength',
+		'brand'       => 'brand',
+	);
+}
+add_filter( 'afpf_filter_taxonomies', 'cbd_filter_taxonomies' );
 
 /**
  * FDA statement — required footer compliance line for a CBD site
