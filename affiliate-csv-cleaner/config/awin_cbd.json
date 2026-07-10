@@ -1,0 +1,46 @@
+{
+  "_comment": "Config for the AWIN CBD feed (CBD Green Labs). Differences from awin_default: sku comes from aw_product_id (merchant_product_id is not mapped), the image comes from merchant_image_url only (no aw_image_url fallback — mixing the two sources gives inconsistent imagery), and brand comes from the merchant_name COLUMN (brand_name is empty on 5,119 of 5,160 feed rows), so the extract_fields step is OFF — the die-cast title-regex extraction for brand/scale/year has no CBD equivalent and would overwrite the column-mapped brand with an empty string. fix_encoding stays on: this feed ships UTF-8 mojibake (e.g. â€“ for an en-dash). product-type is detected from the TITLE at import time via the afpi_product_type_rules filter in the child theme ([CBD-09]).",
+  "network": "AWIN",
+
+  "column_mapping": {
+    "aw_deep_link": "affiliate_url",
+    "product_name": "post_title",
+    "aw_product_id": "sku",
+    "merchant_image_url": "main_image",
+    "description": "features",
+    "search_price": "price",
+    "merchant_name": "brand",
+    "merchant_deep_link": "merchant_url"
+  },
+
+  "duplicate_field": "sku",
+  "description_field": "features",
+  "max_gallery_images": 6,
+
+  "steps": {
+    "remove_empty_rows": true,
+    "trim_whitespace": true,
+    "fix_encoding": true,
+    "clean_descriptions": true,
+    "remove_duplicates": true,
+    "extract_fields": false,
+    "extract_images": true,
+    "seo_enrich": true
+  },
+
+  "seo": {
+    "opening_template": "Discover the {title}, a third-party lab-tested CBD product from a trusted brand.",
+    "closing_template": "Check current pricing and availability for the {title} at the retailer."
+  },
+
+  "tracking_params": [
+    "utm_*",
+    "clickref",
+    "awc",
+    "affid",
+    "ref",
+    "tag",
+    "source",
+    "campaign"
+  ]
+}

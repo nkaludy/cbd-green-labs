@@ -136,9 +136,20 @@ def extract_fields(rows, config, warnings=None):
     for row in rows:
         try:
             title = safe_str(row.get("post_title", ""))
-            row["brand"] = extract_brand(title, brand_re) if patterns_on else ""
-            row["scale"] = extract_scale(title, scale_re) if patterns_on else ""
-            row["year"] = extract_year(title, year_re) if patterns_on else ""
+            # [DOC-P72] Column-mapped values win over title extraction:
+            # this function ALWAYS runs (it guarantees the columns
+            # exist), so before this guard a feed that maps brand from
+            # a real column (e.g. AWIN merchant_name on the CBD feed)
+            # had it silently stomped with "" whenever the step was
+            # off, or with a regex guess when it was on. Extraction is
+            # the fallback for feeds whose only structure is the title,
+            # never an overwrite of data the feed states outright.
+            if not safe_str(row.get("brand", "")).strip():
+                row["brand"] = extract_brand(title, brand_re) if patterns_on else ""
+            if not safe_str(row.get("scale", "")).strip():
+                row["scale"] = extract_scale(title, scale_re) if patterns_on else ""
+            if not safe_str(row.get("year", "")).strip():
+                row["year"] = extract_year(title, year_re) if patterns_on else ""
             kept.append(row)
         except Exception as err:  # noqa: BLE001 — skip the row, keep the run alive.
             if warnings is not None:

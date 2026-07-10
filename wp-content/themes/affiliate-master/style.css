@@ -2779,6 +2779,13 @@ body.page .am-page__title {
 	display: none;
 }
 
+/* Real product images sit on white ([DOC-191]: cream/sage tints
+   product photos), so transparent PNGs match the white-background
+   JPGs the feeds mostly ship instead of floating on the hatch. */
+.afpf-wrap .afpf-card-media img {
+	background: #ffffff;
+}
+
 /* Plugin UI typography: cards sit inside .entry-content on the
    /catalog/ page, where Astra's content-link underline and the serif
    voice leaked in. The plugin's UI is an app surface, not prose —

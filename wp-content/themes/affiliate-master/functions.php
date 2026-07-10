@@ -100,12 +100,15 @@ add_action( 'wp_enqueue_scripts', 'affiliate_master_enqueue_styles' );
  * from the real feed — expected during the build (brief §7).
  */
 function cbd_home_categories() {
+	// Slugs match the real terms the [CBD-09] import rules create
+	// (Oil & Tincture -> oil-tincture, Topical -> topical); the labels
+	// stay in friendly plural marketing voice.
 	return array(
 		array(
 			'num'   => '01',
 			'label' => __( 'Oils & Tinctures', 'affiliate-master' ),
 			'desc'  => __( 'Daily drops for steady balance →', 'affiliate-master' ),
-			'url'   => home_url( '/product-type/oils-tinctures/' ),
+			'url'   => home_url( '/product-type/oil-tincture/' ),
 		),
 		array(
 			'num'   => '02',
@@ -117,7 +120,7 @@ function cbd_home_categories() {
 			'num'   => '03',
 			'label' => __( 'Topicals', 'affiliate-master' ),
 			'desc'  => __( 'Balms for where it aches →', 'affiliate-master' ),
-			'url'   => home_url( '/product-type/topicals/' ),
+			'url'   => home_url( '/product-type/topical/' ),
 		),
 	);
 }
@@ -126,6 +129,47 @@ add_filter( 'affiliate_master_home_categories', 'cbd_home_categories' );
 // The die-cast scale pills have no CBD equivalent; the strength
 // dimension becomes a catalog facet when the feed lands (brief §7).
 add_filter( 'affiliate_master_home_scales', '__return_empty_array' );
+
+/**
+ * [CBD-09] CBD product-type detection rules for the importer.
+ *
+ * Replaces the die-cast table wholesale (the filter's designed use —
+ * see detect_product_type in the importer). ORDER IS LOAD-BEARING:
+ * first matching rule wins, so specific categories sit above generic
+ * ones — "CBD Oil Dog Treats" must land in Pet before "oil" can pull
+ * it into Oil & Tincture, and "Vape Cartridge" must beat any later
+ * keyword. Term slugs derive from the names (Pre-Roll -> pre-roll,
+ * Oil & Tincture -> oil-tincture, Capsule & Tablet -> capsule-tablet).
+ *
+ * @return array Term name => title keywords, in priority order.
+ */
+function cbd_product_type_rules() {
+	return array(
+		'Pet'              => array( 'for dogs', 'for cats', 'for pets', 'pet cbd', 'canine', 'dog treat', 'cat treat' ),
+		'Pre-Roll'         => array( 'pre-roll', 'preroll', 'joint', 'blunt' ),
+		'Flower'           => array( 'flower', 'bud', 'eighth', 'ounce', 'indica', 'sativa', 'hybrid' ),
+		'Vape'             => array( 'vape', 'cartridge', 'cart', 'disposable', 'pod', '510' ),
+		'Concentrate'      => array( 'dab', 'wax', 'rosin', 'resin', 'badder', 'shatter', 'crumble', 'concentrate' ),
+		'Gummies'          => array( 'gummies', 'gummy' ),
+		'Edible'           => array( 'chocolate', 'cookie', 'waffle', 'candy', 'brownie', 'honey', 'caramel', 'syrup', 'cereal' ),
+		'Beverage'         => array( 'drink', 'beverage', 'seltzer', 'soda', 'coffee', 'tea', 'lemonade', 'shot' ),
+		'Oil & Tincture'   => array( 'tincture', 'oil', 'drops', 'mct', 'liquid' ),
+		'Topical'          => array( 'cream', 'balm', 'salve', 'lotion', 'roll-on', 'topical', 'gel', 'rub', 'stick', 'patch', 'serum' ),
+		'Capsule & Tablet' => array( 'capsule', 'softgel', 'tablet', 'pill', 'caplet' ),
+		'Accessory'        => array( 't-shirt', 'shirt', 'gift card', 'hoodie', 'hat', 'grinder', 'tray', 'merch', 'apparel' ),
+	);
+}
+add_filter( 'afpi_product_type_rules', 'cbd_product_type_rules' );
+
+/**
+ * Unmatched titles land in Other, not the die-cast default (Cars).
+ *
+ * @return string
+ */
+function cbd_product_type_default() {
+	return 'Other';
+}
+add_filter( 'afpi_product_type_default', 'cbd_product_type_default' );
 
 /**
  * FDA statement — required footer compliance line for a CBD site
