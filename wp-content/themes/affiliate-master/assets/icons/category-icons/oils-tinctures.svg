@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="78" height="78" viewBox="0 0 78 78" role="img" aria-label="Oils & Tinctures">
+  <circle cx="39" cy="39" r="39" fill="#2F4A3C"/>
+  <g transform="translate(22 22)" fill="none" stroke="#F6F2E9" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8 8h8v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V8Z"/><path d="M8 6h8"/><path d="M11 12v4M13 12v4"/>
+  </g>
+</svg>

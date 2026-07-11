@@ -2823,17 +2823,50 @@ body.page .am-page__title {
 /* --- [CBD-10] Homepage: compact category boxes + product search --- */
 
 .am-cats--compact {
-	gap: 12px;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
 	margin-bottom: 4px;
 }
 
 .am-cat--sm {
-	align-items: baseline;
+	align-items: center;
 	border-radius: var(--am-radius);
 	display: flex;
-	gap: 8px;
-	padding: 18px 22px;
+	flex-direction: column;
+	gap: 9px;
+	padding: 14px 12px;
+	text-align: center;
+}
+
+/* [CBD-16] Forest circle + cream glyph. Both colors come from the
+   palette tokens; the inlined SVG strokes with currentColor, so the
+   glyph simply inherits the circle's color — no hex anywhere. */
+.am-cat__icon {
+	align-items: center;
+	background: var(--am-primary);
+	border-radius: var(--am-pill);
+	color: var(--am-bg-cream);
+	display: flex;
+	flex: 0 0 auto;
+	height: 36px;
+	justify-content: center;
+	transition: background 0.2s ease;
+	width: 36px;
+}
+
+.am-cat__icon svg {
+	display: block;
+	height: 19px;
+	width: 19px;
+}
+
+.am-cat--sm:hover .am-cat__icon,
+.am-cat--sm:focus .am-cat__icon {
+	background: var(--am-primary-dark);
+}
+
+.am-cat--sm .am-cat__name {
+	font-size: 15px;
 }
 
 .am-cat__name {

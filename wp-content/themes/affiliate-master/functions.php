@@ -181,9 +181,13 @@ add_filter( 'afpi_product_type_default', 'cbd_product_type_default' );
  * passed through affiliate_master_home_categories so display-label
  * overrides ([CBD-10] pluralization) apply everywhere the list shows.
  *
- * @return array[] Each: label, count, url.
+ * @param string[] $exclude_slugs Term slugs to leave out (e.g. the
+ *                                homepage grid drops "other" — it's
+ *                                the unclassified bucket, not a real
+ *                                category to merchandise).
+ * @return array[] Each: label, count, url, slug.
  */
-function affiliate_master_get_product_type_categories() {
+function affiliate_master_get_product_type_categories( $exclude_slugs = array() ) {
 	$type_terms = get_terms(
 		array(
 			'taxonomy'   => 'product-type',
@@ -196,6 +200,9 @@ function affiliate_master_get_product_type_categories() {
 	$categories = array();
 	if ( ! is_wp_error( $type_terms ) ) {
 		foreach ( $type_terms as $type_term ) {
+			if ( in_array( $type_term->slug, (array) $exclude_slugs, true ) ) {
+				continue;
+			}
 			$term_link = get_term_link( $type_term );
 			if ( is_wp_error( $term_link ) ) {
 				continue;
@@ -206,11 +213,105 @@ function affiliate_master_get_product_type_categories() {
 				'label' => wp_specialchars_decode( $type_term->name, ENT_QUOTES ),
 				'count' => (int) $type_term->count,
 				'url'   => $term_link,
+				// Slug rides along as the stable key for presentation
+				// maps (the [CBD-16] icon map keys on it).
+				'slug'  => $type_term->slug,
 			);
 		}
 	}
 
 	return apply_filters( 'affiliate_master_home_categories', $categories );
+}
+
+/**
+ * [CBD-16] Category icon map: product-type TERM SLUG => glyph file
+ * basename in assets/icons/ (no extension).
+ *
+ * Keyed by slug, not display name — slugs are the stable identifier
+ * ([CBD-09] creates them; labels get re-voiced by [CBD-10]). The
+ * design set's filenames are plural while our term slugs are
+ * singular, so this map is the one place that difference lives.
+ * Filterable per the niche-config rule; a term with no mapping (or a
+ * missing file) falls back to the "other" glyph in the renderer, so
+ * a new product-type can never break the grid.
+ *
+ * @param array $icons Existing slug => basename map.
+ * @return array
+ */
+function cbd_category_icons( $icons ) {
+	return array_merge(
+		$icons,
+		array(
+			'flower'         => 'flower',
+			'vape'           => 'vapes',
+			'pre-roll'       => 'pre-rolls',
+			'gummies'        => 'gummies',
+			'edible'         => 'edibles',
+			'beverage'       => 'beverages',
+			'oil-tincture'   => 'oils-tinctures',
+			'topical'        => 'topicals',
+			'accessory'      => 'accessories',
+			'concentrate'    => 'concentrates',
+			'pet'            => 'pet',
+			'capsule-tablet' => 'capsules-tablets',
+			'other'          => 'other',
+		)
+	);
+}
+add_filter( 'affiliate_master_category_icons', 'cbd_category_icons' );
+
+/**
+ * [CBD-16] Inline a theme glyph SVG, safely.
+ *
+ * Inlined (not <img>) so stroke="currentColor" inherits the CSS
+ * color of the surrounding circle — the whole point of the glyph
+ * variant is that it follows the --am-* palette with zero hardcoded
+ * hex. Files are theme-owned, but output still passes through a
+ * wp_kses SVG allowlist as the escaping layer. Reads are cached per
+ * request; a missing file returns '' so callers can fall back.
+ *
+ * @param string $basename Icon file basename without extension.
+ * @return string Sanitized inline SVG markup, or '' if unreadable.
+ */
+function affiliate_master_inline_icon( $basename ) {
+	static $cache = array();
+
+	$basename = sanitize_file_name( (string) $basename );
+	if ( isset( $cache[ $basename ] ) ) {
+		return $cache[ $basename ];
+	}
+
+	$path = get_stylesheet_directory() . '/assets/icons/' . $basename . '.svg';
+	$svg  = is_readable( $path ) ? file_get_contents( $path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local theme asset, not a remote request.
+
+	$allowed = array(
+		'svg'      => array(
+			'xmlns'       => true,
+			'viewbox'     => true,
+			'width'       => true,
+			'height'      => true,
+			'aria-hidden' => true,
+			'focusable'   => true,
+		),
+		'g'        => array(
+			'fill'            => true,
+			'stroke'          => true,
+			'stroke-width'    => true,
+			'stroke-linecap'  => true,
+			'stroke-linejoin' => true,
+		),
+		'path'     => array( 'd' => true, 'fill' => true, 'stroke' => true ),
+		'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true, 'fill' => true, 'stroke' => true ),
+		'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'fill' => true, 'stroke' => true ),
+		'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
+		'polyline' => array( 'points' => true ),
+		'polygon'  => array( 'points' => true ),
+		'ellipse'  => array( 'cx' => true, 'cy' => true, 'rx' => true, 'ry' => true ),
+	);
+
+	$cache[ $basename ] = $svg ? wp_kses( $svg, $allowed ) : '';
+
+	return $cache[ $basename ];
 }
 
 /**

@@ -73,3 +73,6 @@ affiliate-csv-cleaner/**/*_cleaned.csv
 # Blog draft sources: markdown masters for posts imported into the DB
 # (wp post create) — content lives in WordPress, not the repo.
 /_blog-drafts/
+
+# macOS Finder metadata
+.DS_Store

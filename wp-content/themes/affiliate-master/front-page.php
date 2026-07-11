@@ -116,17 +116,38 @@ get_header(); ?>
 			 */
 			// [CBD-13] Shared builder (also feeds the single product
 			// page's keep-shopping links); label overrides included.
-			$am_categories = affiliate_master_get_product_type_categories();
+			// "other" is excluded HERE only: the unclassified bucket
+			// isn't a category worth merchandising on the homepage,
+			// and 12 boxes make a clean 6x2 grid.
+			$am_categories = affiliate_master_get_product_type_categories( array( 'other' ) );
+
+			/*
+			 * [CBD-16] Icons: slug-keyed map from the instance config;
+			 * unmapped slugs and missing files both fall back to the
+			 * "other" glyph so a new term can never break the grid.
+			 * Inlined SVGs inherit the circle's CSS color via
+			 * currentColor — palette changes recolor every glyph.
+			 */
+			$am_icon_map = apply_filters( 'affiliate_master_category_icons', array() );
 
 			if ( ! empty( $am_categories ) ) :
 				?>
 				<section class="am-cats am-cats--compact">
-					<?php foreach ( $am_categories as $am_category ) : ?>
+					<?php
+					foreach ( $am_categories as $am_category ) :
+						$am_icon_key = isset( $am_category['slug'], $am_icon_map[ $am_category['slug'] ] ) ? $am_icon_map[ $am_category['slug'] ] : 'other';
+						$am_icon_svg = affiliate_master_inline_icon( $am_icon_key );
+						if ( '' === $am_icon_svg ) {
+							$am_icon_svg = affiliate_master_inline_icon( 'other' );
+						}
+						?>
 						<a class="am-cat am-cat--sm" href="<?php echo esc_url( $am_category['url'] ); ?>">
-							<span class="am-cat__name"><?php echo esc_html( $am_category['label'] ); ?></span>
-							<?php if ( ! empty( $am_category['count'] ) ) : ?>
-								<span class="am-cat__count">&middot; <?php echo esc_html( number_format_i18n( $am_category['count'] ) ); ?></span>
+							<?php if ( $am_icon_svg ) : ?>
+								<span class="am-cat__icon" aria-hidden="true">
+									<?php echo $am_icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_kses-sanitized in affiliate_master_inline_icon(). ?>
+								</span>
 							<?php endif; ?>
+							<span class="am-cat__name"><?php echo esc_html( $am_category['label'] ); ?></span>
 						</a>
 					<?php endforeach; ?>
 				</section>
