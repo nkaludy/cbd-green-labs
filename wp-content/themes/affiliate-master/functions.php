@@ -483,3 +483,5 @@ add_action( 'widgets_init', 'affiliate_master_widgets_init' );
 require_once get_stylesheet_directory() . '/inc/cpt-affiliate-product.php';
 require_once get_stylesheet_directory() . '/inc/acf-fields-affiliate-product.php';
 require_once get_stylesheet_directory() . '/inc/seed-taxonomy-terms.php';
+// [DOC-210] Native GA4/Search Console integration (replaces Site Kit).
+require_once get_stylesheet_directory() . '/inc/site-analytics.php';
