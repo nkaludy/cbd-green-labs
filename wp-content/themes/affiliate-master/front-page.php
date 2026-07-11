@@ -76,7 +76,29 @@ get_header(); ?>
 						<a class="am-btn-light" href="<?php echo esc_url( home_url( '/about/' ) ); ?>"><?php esc_html_e( 'Our story', 'affiliate-master' ); ?></a>
 					</div>
 				</div>
-				<div class="am-hero__img am-ph"><span><?php esc_html_e( 'lifestyle hero shot', 'affiliate-master' ); ?></span></div>
+				<?php
+				/*
+				 * [CBD-15] Real hero shot (replaces the hatch
+				 * placeholder). A THEME asset, not a media-library
+				 * upload: it's brand imagery this instance repo should
+				 * version and deploy with the theme — the DB rebuild
+				 * planned for launch would orphan an uploads copy.
+				 * Served as JPEG (236K) instead of the source PNG
+				 * (1.8M): no alpha, photographic content, and it is
+				 * the LCP element. eager + fetchpriority for the same
+				 * reason.
+				 */
+				?>
+				<div class="am-hero__img">
+					<img
+						src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/img/hero.jpg' ); ?>"
+						alt="<?php esc_attr_e( 'Curated CBD products from CBD Green Labs', 'affiliate-master' ); ?>"
+						width="1254"
+						height="1254"
+						loading="eager"
+						fetchpriority="high"
+					/>
+				</div>
 			</section>
 
 			<?php
@@ -169,21 +191,22 @@ get_header(); ?>
 			---------------------------------------------------------
 			 * Section 4 — Featured products.
 			 *
-			 * The filter plugin's static teaser ([DOC-180]); three
-			 * cards per the mockup. Renders its empty state until the
-			 * CBD feed is imported — expected during the build.
+			 * The filter plugin's static teaser ([DOC-180]), locked to
+			 * the Oil & Tincture product-type: nine cards (3x3) of the
+			 * flagship category. "View all" follows the lock to the
+			 * term archive rather than the whole catalog.
 			 * -------------------------------------------------------
 			 */
 			?>
 			<section class="am-featured-products">
 				<div class="am-section-head">
-					<h2><?php esc_html_e( 'Featured', 'affiliate-master' ); ?></h2>
-					<a class="am-link-more" href="<?php echo esc_url( home_url( '/catalog/' ) ); ?>"><?php esc_html_e( 'View all →', 'affiliate-master' ); ?></a>
+					<h2><?php esc_html_e( 'Featured Oils & Tinctures', 'affiliate-master' ); ?></h2>
+					<a class="am-link-more" href="<?php echo esc_url( home_url( '/product-type/oil-tincture/' ) ); ?>"><?php esc_html_e( 'View all →', 'affiliate-master' ); ?></a>
 				</div>
 				<?php
 				// Plugin-built markup (cards, prices, buy buttons);
 				// escaping would destroy it.
-				echo do_shortcode( '[affiliate_filter per_page="3" show_filters="false" columns="3"]' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo do_shortcode( '[affiliate_filter taxonomy="product-type" term="oil-tincture" per_page="9" show_filters="false" columns="3"]' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				?>
 			</section>
 

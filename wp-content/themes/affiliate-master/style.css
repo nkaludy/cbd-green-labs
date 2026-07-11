@@ -2244,6 +2244,21 @@ h3 {
 	border-radius: var(--am-radius-lg);
 	margin: 20px 20px 20px 0;
 	min-height: 500px;
+	overflow: hidden;
+	position: relative;
+}
+
+/* [CBD-15] Real hero shot fills the rounded frame; absolute so the
+   square source crops to the frame's height instead of stretching
+   the hero band to 1254px. */
+.am-hero__img img {
+	display: block;
+	height: 100%;
+	left: 0;
+	object-fit: cover;
+	position: absolute;
+	top: 0;
+	width: 100%;
 }
 
 /* --- Category cards (numbered 3-up) -------------------------------- */
