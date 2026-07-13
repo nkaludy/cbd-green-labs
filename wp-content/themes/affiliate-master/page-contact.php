@@ -88,12 +88,15 @@ get_header(); ?>
 							<p class="am-contact__text">
 								<?php esc_html_e( 'Questions about a product, a review, or working with us? We read every message and usually reply within two business days.', 'affiliate-master' ); ?>
 							</p>
-							<?php $am_contact_email = get_option( 'admin_email' ); ?>
-							<?php if ( $am_contact_email ) : ?>
-								<p class="am-contact__email">
-									<a href="mailto:<?php echo esc_attr( $am_contact_email ); ?>"><?php echo esc_html( $am_contact_email ); ?></a>
-								</p>
-							<?php endif; ?>
+							<?php
+							/*
+							 * No public email here by choice: the form is
+							 * the contact channel, and the old fallback
+							 * printed the site's admin_email — a private
+							 * inbox that should never render on the front
+							 * end of this instance.
+							 */
+							?>
 						</aside>
 
 					</div><!-- .am-contact -->

@@ -3051,3 +3051,39 @@ body.page .am-page__title {
 	background: var(--am-primary-dark);
 	color: var(--am-bg-cream);
 }
+
+/* --- [CBD-17] Nav hover affordance -----------------------------------
+   The segmented-pill nav only shifted text color on hover — too
+   subtle to read as a link. Hovered items now raise as a soft sage
+   pill; the current page keeps its distinct CREAM pill ([CBD-06]).
+   Selector lists repeat the [DOC-186]-era armor verbatim: the first
+   selector's 6-class weight beats Astra's inline 5-class hover rule
+   regardless of load order, and the current-page group below re-wins
+   at equal weight by source order so hovering the active item never
+   swaps its cream for sage. */
+
+.site-header .main-header-menu .menu-link,
+.site-header .main-navigation a {
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.site-header .ast-builder-menu-1 .main-header-menu > .menu-item:hover > .menu-link,
+.site-header .main-header-menu .menu-item:hover > .menu-link,
+.site-header .main-header-menu .menu-link:hover,
+.site-header .main-navigation a:hover {
+	background: var(--am-sage-2);
+	color: var(--am-primary);
+}
+
+.site-header .ast-builder-menu-1 .main-header-menu > .menu-item:focus-within > .menu-link {
+	background: var(--am-sage-2);
+	color: var(--am-primary);
+}
+
+.site-header .ast-builder-menu-1 .main-header-menu > .current-menu-item > .menu-link,
+.site-header .ast-builder-menu-1 .main-header-menu > .current_page_item > .menu-link,
+.site-header .main-header-menu .current-menu-item > .menu-link,
+.site-header .main-header-menu .current_page_item > .menu-link {
+	background: var(--am-bg-cream);
+	color: var(--am-primary-dark);
+}
