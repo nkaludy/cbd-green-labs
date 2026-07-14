@@ -2973,6 +2973,59 @@ body.page .am-page__title {
 	color: var(--am-bg-cream);
 }
 
+/* --- [CBD-18] Smart 404 ----------------------------------------------
+   Recovery page: sage headline panel, the standard search pill, the
+   plugin card grid and the homepage category boxes — all existing
+   components, only the section spacing is new. ---------------------- */
+
+.am-404 {
+	padding-bottom: 24px;
+}
+
+.am-404__head {
+	background: var(--am-sage);
+	border-radius: var(--am-radius-band);
+	margin: 12px 0 20px;
+	padding: 44px;
+}
+
+.am-404__title {
+	color: var(--am-primary-dark);
+	font-family: var(--am-font-display);
+	font-size: 34px;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	line-height: 1.15;
+	margin: 12px 0 0;
+	max-width: 720px;
+}
+
+.am-404__subtitle {
+	color: var(--am-primary-dark);
+	font-family: var(--am-font-display);
+	font-size: 22px;
+	font-weight: 600;
+	margin: 0 0 18px;
+}
+
+.am-404__products {
+	margin: 28px 0 8px;
+}
+
+.am-404__cats {
+	margin: 36px 0 24px;
+}
+
+@media (max-width: 600px) {
+	.am-404__head {
+		padding: 28px 22px;
+	}
+
+	.am-404__title {
+		font-size: 26px;
+	}
+}
+
 /* --- [CBD-17] Nav hover affordance -----------------------------------
    The segmented-pill nav only shifted text color on hover — too
    subtle to read as a link. Hovered items now raise as a soft sage
