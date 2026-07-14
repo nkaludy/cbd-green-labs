@@ -2950,94 +2950,15 @@ body.page .am-page__title {
 	}
 }
 
-/* --- [CBD-14] Single product bottom block ---------------------------
-   Related siblings grid + the sage "keep shopping" panel (search bar
-   reuses the [CBD-10] .am-home-search component unchanged). -------- */
+/* --- [CBD-14] Single product: related-products section (the
+   keep-shopping block was replaced by the plugin's own topbar,
+   which brings its own styles). ------------------------------- */
 
 .am-product-related {
 	margin: 48px 0 8px;
 }
 
-.am-shop-all {
-	background: var(--am-sage);
-	border-radius: var(--am-radius-band);
-	margin: 40px 0 24px;
-	padding: 36px 40px 32px;
-}
 
-.am-shop-all__title {
-	color: var(--am-primary-dark);
-	font-family: var(--am-font-display);
-	font-size: 24px;
-	font-weight: 700;
-	letter-spacing: -0.02em;
-	margin: 0 0 20px;
-}
-
-.am-shop-all .am-home-search {
-	margin-bottom: 18px;
-}
-
-.am-shop-all__cats {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
-}
-
-.am-cat-pill {
-	align-items: baseline;
-	background: var(--am-bg);
-	border: 1px solid var(--am-border-2);
-	border-radius: var(--am-pill);
-	color: var(--am-primary-dark);
-	display: inline-flex;
-	font-family: var(--am-font-display);
-	font-size: 14px;
-	font-weight: 600;
-	gap: 6px;
-	padding: 9px 16px;
-	text-decoration: none;
-	transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.am-cat-pill:hover,
-.am-cat-pill:focus {
-	background: var(--am-bg-cream);
-	border-color: var(--am-gold);
-	color: var(--am-primary);
-}
-
-.am-cat-pill__count {
-	color: var(--am-gold);
-	font-family: var(--am-font-mono);
-	font-size: 11px;
-	letter-spacing: 0.06em;
-}
-
-/* Lead pill: the unfiltered catalog, solid forest so it reads as the
-   primary "shop everything" action ahead of the term pills. */
-.am-cat-pill--all {
-	background: var(--am-primary);
-	border-color: var(--am-primary);
-	color: var(--am-bg-cream);
-}
-
-.am-cat-pill--all:hover,
-.am-cat-pill--all:focus {
-	background: var(--am-primary-dark);
-	border-color: var(--am-primary-dark);
-	color: var(--am-bg-cream);
-}
-
-.am-cat-pill--all .am-cat-pill__count {
-	color: var(--am-on-dark-mut);
-}
-
-@media (max-width: 600px) {
-	.am-shop-all {
-		padding: 26px 22px;
-	}
-}
 
 /* Single product buy button: cream-on-forest pill (the old rule
    paired gold text with the green fill — no contrast now). */
